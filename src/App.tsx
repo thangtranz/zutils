@@ -385,7 +385,7 @@ export default function App() {
   };
 
   const globalDownloadCSV = () => {
-    const all = Array.from(exportHandles.current.values()).map(h => `=== ${h.fileName} ===\n${h.getCSV()}`).join("\n\n");
+    const all = Array.from(exportHandles.current.values()).map(h => `# ${h.fileName}\n${h.getCSV()}`).join("\n\n");
     const blob = new Blob([all], { type: "text/csv" });
     const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: "all_schedules.csv" });
     a.click(); URL.revokeObjectURL(a.href);
@@ -405,7 +405,7 @@ export default function App() {
   };
 
   const globalCopy = () => {
-    const all = Array.from(exportHandles.current.values()).map(h => `=== ${h.fileName} ===\n${h.getCSV()}`).join("\n\n");
+    const all = Array.from(exportHandles.current.values()).map(h => `# ${h.fileName}\n${h.getCSV()}`).join("\n\n");
     navigator.clipboard.writeText(all);
     setGlobalCopied(true);
     setTimeout(() => setGlobalCopied(false), 2000);
