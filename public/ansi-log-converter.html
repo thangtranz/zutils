@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ANSI Log Converter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0a0c10;
+    --surface:   #111318;
+    --border:    #1e2330;
+    --border2:   #252b3b;
+    --text:      #cdd5e0;
+    --muted:     #5a6478;
+    --accent:    #4fc1ff;
+    --accent2:   #7c5cfc;
+    --success:   #57c96b;
+    --danger:    #f47067;
+    --warning:   #e8a243;
+    --radius:    6px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: row;
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 200px;
+    background: #0d0f14;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    height: 100vh;
+    position: sticky;
+    top: 0;
+  }
+  .sidebar-brand {
+    padding: 18px 16px 14px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+  .sidebar-brand-name {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: #e6edf3;
+    letter-spacing: -0.3px;
+  }
+  .sidebar-brand-sub {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 2px;
+    letter-spacing: 0.5px;
+  }
+  .sidebar-section {
+    padding: 6px 12px 4px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #3a4255;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 14px;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    transition: all 0.15s;
+    border-left: 2px solid transparent;
+    margin: 1px 0;
+  }
+  .nav-item:hover {
+    color: var(--text);
+    background: var(--surface);
+  }
+  .nav-item.active {
+    color: var(--accent);
+    border-left-color: var(--accent);
+    background: rgba(79, 193, 255, 0.06);
+  }
+  .nav-item .nav-icon { font-size: 15px; flex-shrink: 0; }
+
+  /* ── MAIN WRAPPER ── */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 0;
+  }
+
+  /* ── HEADER ── */
+  header {
+    padding: 20px 28px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--surface);
+  }
+  .logo {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  header h1 {
+    font-family: 'Space Mono', monospace;
+    font-size: 15px;
+    font-weight: 700;
+    color: #e6edf3;
+    letter-spacing: -0.3px;
+  }
+  header p {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 1px;
+  }
+  .header-actions { margin-left: auto; display: flex; gap: 8px; }
+
+  /* ── LAYOUT ── */
+  .workspace {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr;
+    gap: 0;
+    overflow: hidden;
+  }
+
+  .pane {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .pane:first-child { border-right: 1px solid var(--border); }
+
+  .pane-header {
+    padding: 10px 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .pane-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .pane-badge {
+    font-size: 10px;
+    padding: 1px 7px;
+    border-radius: 20px;
+    border: 1px solid var(--border2);
+    color: var(--muted);
+    background: transparent;
+  }
+  .pane-badge.active {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .pane-actions { margin-left: auto; display: flex; gap: 6px; }
+
+  /* ── BUTTONS ── */
+  .btn {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 5px 12px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border2);
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .btn:hover { background: var(--border); border-color: var(--muted); }
+  .btn.primary {
+    background: var(--accent2);
+    border-color: var(--accent2);
+    color: #fff;
+  }
+  .btn.primary:hover { background: #6a4de8; border-color: #6a4de8; }
+  .btn.danger-btn { color: var(--danger); border-color: #3a1e1e; }
+  .btn.danger-btn:hover { background: #1e1010; }
+  .btn.copy-btn { color: var(--success); border-color: #1a3020; }
+  .btn.copy-btn:hover { background: #0d1e12; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ── TEXTAREA ── */
+  textarea {
+    flex: 1;
+    width: 100%;
+    background: var(--bg);
+    color: #8b949e;
+    font-family: 'Space Mono', monospace;
+    font-size: 11.5px;
+    line-height: 1.7;
+    padding: 16px 18px;
+    border: none;
+    outline: none;
+    resize: none;
+    tab-size: 4;
+  }
+  textarea::placeholder { color: #2e3545; }
+
+  /* ── OUTPUT ── */
+  .output-scroll {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: var(--bg);
+  }
+  .output-scroll::-webkit-scrollbar { width: 6px; }
+  .output-scroll::-webkit-scrollbar-track { background: transparent; }
+  .output-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  #output {
+    padding: 16px 18px 40px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11.5px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-all;
+    min-height: 100%;
+  }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 12px;
+    color: var(--muted);
+    padding: 40px;
+    text-align: center;
+  }
+  .empty-icon { font-size: 36px; opacity: 0.4; }
+  .empty-state p { font-size: 13px; line-height: 1.6; max-width: 260px; }
+
+  /* ── LEGEND ── */
+  .legend {
+    border-top: 1px solid var(--border);
+    padding: 8px 18px;
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 10.5px; color: var(--muted);
+  }
+  .swatch { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ── STATS BAR ── */
+  .stats {
+    border-top: 1px solid var(--border);
+    padding: 6px 18px;
+    display: flex; gap: 16px;
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+  .stat { font-size: 10.5px; color: var(--muted); display: flex; gap: 5px; }
+  .stat b { color: var(--text); font-weight: 500; }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed;
+    bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 9px 18px;
+    font-size: 12.5px;
+    color: var(--success);
+    opacity: 0;
+    transition: all 0.25s;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 999;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── DRAG OVERLAY ── */
+  #drag-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(79, 193, 255, 0.06);
+    border: 2px dashed var(--accent);
+    border-radius: 8px;
+    z-index: 50;
+    pointer-events: none;
+    align-items: center; justify-content: center;
+    font-size: 16px; color: var(--accent);
+    font-family: 'Space Mono', monospace;
+  }
+  #drag-overlay.active { display: flex; }
+
+  /* ── SCROLLBAR ── */
+  textarea::-webkit-scrollbar { width: 5px; }
+  textarea::-webkit-scrollbar-track { background: transparent; }
+  textarea::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="sidebar-brand">
+    <div class="sidebar-brand-name">zutils</div>
+    <div class="sidebar-brand-sub">Developer Tools</div>
+  </div>
+  <div class="sidebar-section">Tools</div>
+  <a href="./index.html" class="nav-item">
+    <span class="nav-icon">📅</span> PagerDuty Calendar
+  </a>
+  <a href="./ansi-log-converter.html" class="nav-item active">
+    <span class="nav-icon">⚡</span> ANSI Log Converter
+  </a>
+</nav>
+
+<div class="main">
+
+<header>
+  <div class="logo">⚡</div>
+  <div>
+    <h1>ANSI Log Converter</h1>
+    <p>Paste console output → rendered with color</p>
+  </div>
+  <div class="header-actions">
+    <button class="btn" onclick="loadSample()">Load sample</button>
+    <button class="btn primary" onclick="convert()">Convert ↵</button>
+  </div>
+</header>
+
+<div class="workspace">
+
+  <!-- LEFT: INPUT -->
+  <div class="pane">
+    <div class="pane-header">
+      <span class="pane-label">Input</span>
+      <span class="pane-badge active" id="input-badge">raw ANSI</span>
+      <div class="pane-actions">
+        <button class="btn danger-btn" onclick="clearInput()">Clear</button>
+        <button class="btn" onclick="pasteFromClipboard()">Paste</button>
+      </div>
+    </div>
+    <textarea id="input"
+      placeholder="Paste your console log here…&#10;&#10;Supports ANSI escape codes like [31mERROR[0m or bare [36mINFO[0m format."
+      oninput="onInput()"
+      spellcheck="false"
+    ></textarea>
+    <div class="stats" id="input-stats">
+      <div class="stat"><b id="s-lines">0</b> lines</div>
+      <div class="stat"><b id="s-errors">0</b> errors</div>
+      <div class="stat"><b id="s-infos">0</b> info</div>
+      <div class="stat" id="s-size-stat" style="margin-left:auto"><b id="s-size">0 B</b></div>
+    </div>
+  </div>
+
+  <!-- RIGHT: OUTPUT -->
+  <div class="pane">
+    <div class="pane-header">
+      <span class="pane-label">Output</span>
+      <span class="pane-badge" id="output-badge">—</span>
+      <div class="pane-actions">
+        <button class="btn copy-btn" id="copy-html-btn" onclick="copyHTML()" disabled>Copy HTML</button>
+        <button class="btn" id="export-btn" onclick="exportHTML()" disabled>Export ↓</button>
+      </div>
+    </div>
+    <div class="output-scroll" id="output-scroll">
+      <div class="empty-state" id="empty-state">
+        <div class="empty-icon">🖥</div>
+        <p>Paste a console log on the left and hit <strong>Convert</strong> to render it here.</p>
+      </div>
+      <pre id="output" style="display:none"></pre>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><span class="swatch" style="background:#4fc1ff"></span>Scenario/Poll</div>
+      <div class="legend-item"><span class="swatch" style="background:#569cd6"></span>INFO</div>
+      <div class="legend-item"><span class="swatch" style="background:#f47067"></span>ERROR/FAIL</div>
+      <div class="legend-item"><span class="swatch" style="background:#57c96b"></span>Received</div>
+      <div class="legend-item"><span class="swatch" style="background:#c586c0"></span>Deleted</div>
+      <div class="legend-item"><span class="swatch" style="background:#cccccc"></span>Loader</div>
+      <div class="legend-item"><span class="swatch" style="background:#8b949e"></span>Detail</div>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast">✓ Copied to clipboard</div>
+<div id="drag-overlay" class="active" id="drag-overlay">Drop log file here</div>
+
+</div><!-- /.main -->
+
+<script>
+// ── ANSI COLOR MAP ──────────────────────────────────────────────────────────
+const COLORS = {
+  '30': '#1e1e1e',
+  '31': '#f47067',   // red   – ERROR / FAIL
+  '32': '#57c96b',   // green – received
+  '33': '#e8a243',   // yellow
+  '34': '#569cd6',   // blue  – INFO
+  '35': '#c586c0',   // magenta – deleted
+  '36': '#4fc1ff',   // cyan  – scenario / polling
+  '37': '#cccccc',   // white – loader
+  '90': '#6e7681',   // gray  – hlog prefix
+  '2;37': '#8b949e', // dim   – JSON detail
+};
+
+// ── CONVERTER ──────────────────────────────────────────────────────────────
+function escapeHTML(str) {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function ansiToHTML(text) {
+  // Match optional ESC + [codes]m
+  const pattern = /(?:\x1b)?\[([0-9;]*)m/g;
+  let result = '';
+  let last = 0;
+  let stack = [];
+  let match;
+
+  while ((match = pattern.exec(text)) !== null) {
+    result += escapeHTML(text.slice(last, match.index));
+    const code = match[1];
+
+    if (code === '0' || code === '') {
+      result += '</span>'.repeat(stack.length);
+      stack = [];
+    } else if (COLORS[code]) {
+      result += `<span style="color:${COLORS[code]}">`;
+      stack.push(code);
+    }
+    last = match.index + match[0].length;
+  }
+
+  result += escapeHTML(text.slice(last));
+  result += '</span>'.repeat(stack.length);
+  return result;
+}
+
+// ── STATE ──────────────────────────────────────────────────────────────────
+let lastHTML = '';
+
+function convert() {
+  const raw = document.getElementById('input').value.trim();
+  if (!raw) return;
+
+  const rendered = ansiToHTML(raw);
+  lastHTML = rendered;
+
+  const out = document.getElementById('output');
+  const empty = document.getElementById('empty-state');
+
+  out.innerHTML = rendered;
+  out.style.display = 'block';
+  empty.style.display = 'none';
+
+  document.getElementById('output-badge').textContent = 'rendered';
+  document.getElementById('output-badge').classList.add('active');
+  document.getElementById('copy-html-btn').disabled = false;
+  document.getElementById('export-btn').disabled = false;
+}
+
+// Auto-convert on input with small debounce
+let debounceTimer;
+function onInput() {
+  updateStats();
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(convert, 400);
+}
+
+function updateStats() {
+  const raw = document.getElementById('input').value;
+  const lines = raw ? raw.split('\n').length : 0;
+  const errors = (raw.match(/\[31m/g) || []).length;
+  const infos  = (raw.match(/\[34m/g) || []).length;
+  const bytes  = new Blob([raw]).size;
+  const size   = bytes > 1024 ? (bytes/1024).toFixed(1) + ' KB' : bytes + ' B';
+
+  document.getElementById('s-lines').textContent = lines.toLocaleString();
+  document.getElementById('s-errors').textContent = errors;
+  document.getElementById('s-infos').textContent = infos;
+  document.getElementById('s-size').textContent = size;
+}
+
+function clearInput() {
+  document.getElementById('input').value = '';
+  document.getElementById('output').innerHTML = '';
+  document.getElementById('output').style.display = 'none';
+  document.getElementById('empty-state').style.display = 'flex';
+  document.getElementById('output-badge').textContent = '—';
+  document.getElementById('output-badge').classList.remove('active');
+  document.getElementById('copy-html-btn').disabled = true;
+  document.getElementById('export-btn').disabled = true;
+  lastHTML = '';
+  updateStats();
+}
+
+// ── CLIPBOARD ─────────────────────────────────────────────────────────────
+async function pasteFromClipboard() {
+  try {
+    const text = await navigator.clipboard.readText();
+    document.getElementById('input').value = text;
+    onInput();
+  } catch(e) {
+    showToast('⚠ Clipboard access denied — paste manually', '#e8a243');
+  }
+}
+
+function copyHTML() {
+  if (!lastHTML) return;
+  const full = buildFullHTML(lastHTML);
+  navigator.clipboard.writeText(full).then(() => {
+    showToast('✓ HTML copied to clipboard');
+  });
+}
+
+// ── EXPORT ────────────────────────────────────────────────────────────────
+function buildFullHTML(body) {
+  const ts = new Date().toISOString().slice(0, 16).replace('T', ' ');
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Console Log — ${ts}</title>
+<style>
+  body { background:#0d1117; color:#c9d1d9; font-family:'Cascadia Code','Fira Code',Consolas,monospace; font-size:12.5px; line-height:1.7; padding:20px; }
+  .log { white-space:pre-wrap; word-break:break-all; }
+</style>
+</head>
+<body><div class="log">${body}</div></body>
+</html>`;
+}
+
+function exportHTML() {
+  if (!lastHTML) return;
+  const blob = new Blob([buildFullHTML(lastHTML)], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'console-log-' + Date.now() + '.html';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('✓ File downloaded');
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, color = '#57c96b') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.color = color;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ── DRAG & DROP ───────────────────────────────────────────────────────────
+const overlay = document.getElementById('drag-overlay');
+overlay.style.display = 'none';
+
+document.addEventListener('dragover', e => {
+  e.preventDefault();
+  overlay.classList.add('active');
+  overlay.style.display = 'flex';
+});
+document.addEventListener('dragleave', e => {
+  if (!e.relatedTarget) {
+    overlay.classList.remove('active');
+    overlay.style.display = 'none';
+  }
+});
+document.addEventListener('drop', e => {
+  e.preventDefault();
+  overlay.classList.remove('active');
+  overlay.style.display = 'none';
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    document.getElementById('input').value = ev.target.result;
+    onInput();
+    showToast(`✓ Loaded: ${file.name}`);
+  };
+  reader.readAsText(file);
+});
+
+// ── KEYBOARD SHORTCUT ─────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    e.preventDefault();
+    convert();
+  }
+});
+
+// ── SAMPLE ────────────────────────────────────────────────────────────────
+function loadSample() {
+  document.getElementById('input').value = `2026-04-10T08:19:45.566Z [36m============================================[0m
+2026-04-10T08:19:45.566Z [36mScenario 1/7: hm_f_not_delivered[0m
+2026-04-10T08:19:45.566Z [36mDescription: Auto-discovered scenario[0m
+2026-04-10T08:19:45.566Z [36m============================================[0m
+2026-04-10T08:19:45.566Z [36mLoad test case inputs: [kinesis mongodb][0m
+2026-04-10T08:19:46.392Z [90mhlog[0m 2026-04-10T08:19:46.392Z	[31mERROR[0m	failed to get shards of stream oms-develop-stock-change	[2;37m{"error": "ResourceNotFoundException: Stream not found"}[0m
+2026-04-10T08:19:46.403Z [90mhlog[0m 2026-04-10T08:19:46.403Z	[34mINFO[0m	Acquired lock for stream oms-develop-item-status-sync
+2026-04-10T08:19:48.335Z [37m✔ Stream oms-develop-item-status-sync created/verified[0m
+2026-04-10T08:19:48.335Z [37m✓ MongoDBLoader: Loaded 1 files (orders)[0m
+2026-04-10T08:19:49.861Z [37m✔ Published events from 1 files[0m
+2026-04-10T08:19:49.861Z [36mStarting polling for 1 readiness conditions (every 1 second)[0m
+2026-04-10T08:19:50.118Z [90mhlog[0m 2026-04-10T08:19:50.118Z	[34mINFO[0m	Handle record successfully, seqNumber: 4967348719891639257
+2026-04-10T08:19:50.126Z [37mdevelop-workflow-trigger[32m message received[0m
+2026-04-10T08:19:50.173Z [37mdevelop-workflow-trigger[36m message consumed[0m
+2026-04-10T08:19:50.173Z [37mdevelop-workflow-trigger[35m message deleted[0m
+2026-04-10T08:19:50.185Z [90mhlog[0m 2026-04-10T08:19:50.184Z	[34mINFO[0m	consolidate-order-status-from-multi-oms	Consolidated status successfully	[2;37m{"connector": "HM - I216 Sync Order Status From Multi OMS"}[0m
+2026-04-10T08:19:50.197Z [90mhlog[0m 2026-04-10T08:19:50.197Z	[34mINFO[0m	calculate-order-status	New statuses after consolidate	[2;37m{"statuses": ["C","P1","F"], "orderNumber": "HM-SG-80020397386"}[0m
+2026-04-10T08:19:50.215Z [90mhlog[0m 2026-04-10T08:19:50.212Z	[31mERROR[0m	push-data	could not get handler for push data	[2;37m{"error": "no condition found for push data handler"}[0m
+2026-04-10T08:19:50.233Z [90mhlog[0m 2026-04-10T08:19:50.233Z	[34mINFO[0m	push-data	Push data success	[2;37m{"sent_status": "C", "dilog-param-status": "SUCCESS"}[0m
+2026-04-10T08:19:50.393Z [90mhlog[0m 2026-04-10T08:19:50.393Z	[34mINFO[0m	calculate-order-status	New statuses after consolidate	[2;37m{"statuses": ["NOT_CONCLUDED"], "orderNumber": "HM-SG-80020397386"}[0m
+2026-04-10T08:19:50.394Z [90mhlog[0m 2026-04-10T08:19:50.393Z	[34mINFO[0m	calculate-order-status	Order Status is not concluded: Stop the flow	[2;37m{"orderStatus": "NOT_CONCLUDED"}[0m
+2026-04-10T08:19:50.863Z [36mWaiting for hm_f_not_delivered[0m
+2026-04-10T08:20:20.950Z [31m✖ Timeout after 30s: Assertion 'hm_f_not_delivered' failed:
+  1. F status calculated: expected F, got NOT_CONCLUDED[0m
+2026-04-10T08:20:20.950Z [31m✖ Assertion failed after 61 attempts: hm_f_not_delivered[0m
+2026-04-10T08:20:20.950Z [31m   Expected: 1 assertions to pass[0m
+2026-04-10T08:20:20.950Z [31m   Actual:   1 of 1 assertions failed[0m
+2026-04-10T08:25:00.715Z [31m✖ Scenario 1/7 FAILED: hm_f_not_delivered - Readiness conditions not met[0m
+2026-04-10T08:25:00.717Z [36mClean previous scenario: hm_f_not_delivered[0m
+2026-04-10T08:25:00.717Z [37m✔ Mockoon logs purged successfully[0m
+2026-04-10T08:25:00.717Z [36m✔ Ready for next scenario[0m`;
+  onInput();
+}
+</script>
+</body>
+</html>

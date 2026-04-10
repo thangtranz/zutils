@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect, DragEvent, ChangeEvent } from "react";
+import AnsiConverter from "./AnsiConverter";
 import * as XLSX from "xlsx";
 
 interface Entry {
@@ -339,9 +340,52 @@ function CalendarSection({ cal, onRemove, onRegister }: {
   );
 }
 
+type Tool = "calendar" | "ansi";
+
+const TOOLS: { id: Tool; icon: string; label: string }[] = [
+  { id: "calendar", icon: "📅", label: "PagerDuty Calendar" },
+  { id: "ansi",     icon: "⚡", label: "ANSI Log Converter" },
+];
+
+function Sidebar({ activeTool, onSelect }: { activeTool: Tool; onSelect: (t: Tool) => void }) {
+  const base: React.CSSProperties = {
+    display: "flex", alignItems: "center", gap: 10,
+    padding: "9px 14px", fontSize: 13,
+    borderLeft: "2px solid transparent", margin: "1px 0",
+    cursor: "pointer", background: "none", border: "none",
+    width: "100%", textAlign: "left", color: "#6b7280",
+    transition: "all 0.15s",
+  };
+  return (
+    <nav style={{
+      width: 200, background: "#f8fafc",
+      borderRight: "1px solid #e2e8f0",
+      display: "flex", flexDirection: "column",
+      flexShrink: 0, height: "100vh",
+      position: "sticky", top: 0,
+    }}>
+      <div style={{ padding: "18px 16px 14px", borderBottom: "1px solid #e2e8f0", marginBottom: 8 }}>
+        <div style={{ fontWeight: 700, fontSize: 13, color: "#111827" }}>zutils</div>
+        <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 2, letterSpacing: "0.5px" }}>Developer Tools</div>
+      </div>
+      <div style={{ padding: "6px 12px 4px", fontSize: 9, fontWeight: 700, letterSpacing: "1.5px", textTransform: "uppercase", color: "#d1d5db" }}>Tools</div>
+      {TOOLS.map(t => (
+        <button key={t.id} onClick={() => onSelect(t.id)} style={
+          activeTool === t.id
+            ? { ...base, color: "#2563eb", borderLeftColor: "#2563eb", background: "rgba(37,99,235,0.05)" }
+            : base
+        }>
+          <span style={{ fontSize: 15 }}>{t.icon}</span> {t.label}
+        </button>
+      ))}
+    </nav>
+  );
+}
+
 let nextId = 1;
 
 export default function App() {
+  const [activeTool, setActiveTool] = useState<Tool>("calendar");
   const [calendars, setCalendars] = useState<CalendarData[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -417,7 +461,9 @@ export default function App() {
   };
 
   return (
-    <div style={{ fontFamily: "sans-serif", padding: 20, fontSize: 13, maxWidth: "100%" }}>
+    <div style={{ display: "flex", minHeight: "100vh", fontFamily: "sans-serif", fontSize: 13 }}>
+      <Sidebar activeTool={activeTool} onSelect={setActiveTool} />
+      {activeTool === "ansi" ? <AnsiConverter /> : <div style={{ flex: 1, padding: 20, maxWidth: "100%", minWidth: 0 }}>
       <h2 style={{ marginBottom: 4 }}>On-Call Schedule → CSV / Excel</h2>
       <p style={{ color: "#6b7280", marginBottom: 16 }}>Upload one or more PagerDuty .ics files.</p>
 
@@ -485,6 +531,7 @@ export default function App() {
           </div>
         );
       })()}
+      </div>}
     </div>
   );
 }
