@@ -1,5 +1,4 @@
 import { useState, useRef, useCallback, useEffect, DragEvent, ChangeEvent } from "react";
-import AnsiConverter from "./AnsiConverter";
 import * as XLSX from "xlsx";
 
 interface Entry {
@@ -38,12 +37,30 @@ function parseICS(text: string): Entry[] {
   for (let i = 1; i < blocks.length; i++) {
     const block = blocks[i];
     const summaryMatch = block.match(/SUMMARY:On Call - (.+?) - /);
+    const startMatch = block.match(/DTSTART[^:]*:(\d{8}T\d{6}Z)/);
     const endMatch = block.match(/DTEND[^:]*:(\d{8}T\d{6}Z)/);
-    if (!summaryMatch || !endMatch) continue;
+    if (!summaryMatch || !startMatch || !endMatch) continue;
     const name = summaryMatch[1].trim();
-    const raw = endMatch[1];
-    const y = raw.slice(0, 4), m = raw.slice(4, 6), d = raw.slice(6, 8);
-    entries.push({ name, yearMonth: `${y}-${m}`, day: parseInt(d), year: y, month: m });
+
+    // Parse start and end UTC dates
+    const parseDate = (raw: string) => new Date(
+      `${raw.slice(0,4)}-${raw.slice(4,6)}-${raw.slice(6,8)}T${raw.slice(9,11)}:${raw.slice(11,13)}:${raw.slice(13,15)}Z`
+    );
+    const startDate = parseDate(startMatch[1]);
+    const endDate = parseDate(endMatch[1]);
+
+    // Expand each day from start (inclusive) to end (exclusive) using end date
+    // Each 24h slot: person is on call and the "column" day is the END of that slot
+    let cur = new Date(startDate);
+    while (cur < endDate) {
+      const next = new Date(cur.getTime() + 24 * 60 * 60 * 1000);
+      const colDate = next; // use end of the 24h slot as the column
+      const y = String(colDate.getUTCFullYear());
+      const m = String(colDate.getUTCMonth() + 1).padStart(2, "0");
+      const d = colDate.getUTCDate();
+      entries.push({ name, yearMonth: `${y}-${m}`, day: d, year: y, month: m });
+      cur = next;
+    }
   }
   return entries;
 }
@@ -134,7 +151,7 @@ function CalendarSection({ cal, onRemove, onRegister }: {
 
   const sheets = buildSheets(cal.entries, names, fromYM, fromDay, toYM, toDay);
 
-  const buildCSV = useCallback((): string => {
+  const buildCSV = (): string => {
     if (combined) {
       const header1 = ["", ...sheets.map(s => [monthLabel(s.ym), ...Array(s.cols.length - 1).fill("")]).flat()].join(",");
       const header2 = ["Name", ...sheets.map(s => s.cols).flat()].join(",");
@@ -142,9 +159,9 @@ function CalendarSection({ cal, onRemove, onRegister }: {
       return [header1, header2, ...dataRows].join("\n");
     }
     return sheets.map(s => `${monthLabel(s.ym)}\n${toCSV(s)}`).join("\n\n");
-  }, [sheets, names, combined]);
+  };
 
-  const buildExcelRows = useCallback((): { sheetName: string; aoa: (string | number)[][] }[] => {
+  const buildExcelRows = (): { sheetName: string; aoa: (string | number)[][] }[] => {
     if (combined) {
       const header1 = ["", ...sheets.map(s => [monthLabel(s.ym), ...Array(s.cols.length - 1).fill("")]).flat()];
       const header2 = ["Name", ...sheets.map(s => s.cols).flat()];
@@ -155,14 +172,14 @@ function CalendarSection({ cal, onRemove, onRegister }: {
       sheetName: monthLabel(s.ym).slice(0, 31),
       aoa: [["Name", ...s.cols], ...s.rows.map(r => [r.name, ...r.cells])]
     }));
-  }, [sheets, names, combined, cal.fileName]);
+  };
 
-  const buildStats = useCallback((): { name: string; days: number }[] => {
+  const buildStats = (): { name: string; days: number }[] => {
     return names.map((name, ri) => ({
       name,
       days: sheets.reduce((sum, s) => sum + s.rows[ri].cells.filter(c => c === 8).length, 0)
     }));
-  }, [sheets, names]);
+  };
 
   // Re-register handle whenever sheets, names or combined changes so parent always has fresh closures
   useEffect(() => {
@@ -258,6 +275,18 @@ function CalendarSection({ cal, onRemove, onRegister }: {
             <th style={{ border: "1px solid #ddd", padding: "4px 8px", background: "#dbeafe", minWidth: 50, textAlign: "center" }}>Hrs</th>
             {sheet.cols.map(d => <th key={d} style={{ border: "1px solid #ddd", padding: "4px 6px", background: "#f3f4f6", minWidth: 28, textAlign: "center" }}>{d}</th>)}
           </tr>
+          <tr>
+            <th style={{ border: "1px solid #ddd", padding: "4px 8px", background: "#e5e7eb", position: "sticky", left: 0, zIndex: 1 }}>Total</th>
+            <th style={{ border: "1px solid #ddd", padding: "4px 8px", background: "#bbf7d0", textAlign: "center", fontWeight: 700, color: "#15803d" }}>
+              {sheet.rows.reduce((s, r) => s + r.cells.filter(c => c === 8).length, 0)}
+            </th>
+            <th style={{ border: "1px solid #ddd", padding: "4px 8px", background: "#bfdbfe", textAlign: "center", fontWeight: 700, color: "#1d4ed8" }}>
+              {sheet.rows.reduce((s, r) => s + r.cells.filter(c => c === 8).length, 0) * 8}
+            </th>
+            <th colSpan={sheet.cols.length} style={{ border: "1px solid #ddd", padding: "4px 8px", background: "#e5e7eb", textAlign: "center", fontWeight: 700, color: "#374151" }}>
+              {!combined && monthLabel(sheet.ym)}
+            </th>
+          </tr>
         </thead>
         <tbody>
           {sheet.rows.map((r, ri) => {
@@ -271,6 +300,16 @@ function CalendarSection({ cal, onRemove, onRegister }: {
               </tr>
             );
           })}
+          <tr>
+            <td style={{ border: "1px solid #ddd", padding: "4px 8px", fontWeight: 700, background: "#e5e7eb", position: "sticky", left: 0 }}>Total</td>
+            <td style={{ border: "1px solid #ddd", padding: "4px 8px", textAlign: "center", background: "#bbf7d0", color: "#15803d", fontWeight: 700 }}>
+              {sheet.rows.reduce((s, r) => s + r.cells.filter(c => c === 8).length, 0)}
+            </td>
+            <td style={{ border: "1px solid #ddd", padding: "4px 8px", textAlign: "center", background: "#bfdbfe", color: "#1d4ed8", fontWeight: 700 }}>
+              {sheet.rows.reduce((s, r) => s + r.cells.filter(c => c === 8).length, 0) * 8}
+            </td>
+            {sheet.cols.map((_, ci) => <td key={ci} style={{ border: "1px solid #ddd", background: "#f9fafb" }} />)}
+          </tr>
         </tbody>
       </table>
     </div>
@@ -287,9 +326,13 @@ function CalendarSection({ cal, onRemove, onRegister }: {
             {sheets.map(s => s.cols.map(d => <th key={`${s.ym}-${d}`} style={{ border: "1px solid #ddd", padding: "4px 6px", background: "#f3f4f6", minWidth: 28, textAlign: "center" }}>{d}</th>))}
           </tr>
           <tr>
-            <th style={{ border: "1px solid #ddd", padding: "4px 8px", background: "#e5e7eb", position: "sticky", left: 0, zIndex: 2 }}></th>
-            <th style={{ border: "1px solid #ddd", padding: "4px 8px", background: "#dcfce7" }}></th>
-            <th style={{ border: "1px solid #ddd", padding: "4px 8px", background: "#dbeafe" }}></th>
+            <th style={{ border: "1px solid #ddd", padding: "4px 8px", background: "#e5e7eb", position: "sticky", left: 0, zIndex: 2 }}>Total</th>
+            <th style={{ border: "1px solid #ddd", padding: "4px 8px", background: "#bbf7d0", textAlign: "center", fontWeight: 700, color: "#15803d" }}>
+              {names.reduce((sum, _, ri) => sum + sheets.reduce((s2, sh) => s2 + sh.rows[ri].cells.filter(c => c === 8).length, 0), 0)}
+            </th>
+            <th style={{ border: "1px solid #ddd", padding: "4px 8px", background: "#bfdbfe", textAlign: "center", fontWeight: 700, color: "#1d4ed8" }}>
+              {names.reduce((sum, _, ri) => sum + sheets.reduce((s2, sh) => s2 + sh.rows[ri].cells.filter(c => c === 8).length, 0), 0) * 8}
+            </th>
             {sheets.map(s => <th key={s.ym} colSpan={s.cols.length} style={{ border: "1px solid #ddd", padding: "4px 8px", background: "#e5e7eb", textAlign: "center", fontWeight: 700, color: "#374151" }}>{monthLabel(s.ym)}</th>)}
           </tr>
         </thead>
@@ -302,7 +345,7 @@ function CalendarSection({ cal, onRemove, onRegister }: {
                 <td style={countStyle}>{totalDays}</td>
                 <td style={hoursStyle}>{totalDays * 8}</td>
                 {sheets.map(s => s.rows[ri].cells.map((c, ci) => <td key={`${s.ym}-${ci}`} style={cellStyle(c)}>{c}</td>))}
-              </tr>
+                  </tr>
             );
           })}
         </tbody>
@@ -340,52 +383,9 @@ function CalendarSection({ cal, onRemove, onRegister }: {
   );
 }
 
-type Tool = "calendar" | "ansi";
-
-const TOOLS: { id: Tool; icon: string; label: string }[] = [
-  { id: "calendar", icon: "📅", label: "PagerDuty Calendar" },
-  { id: "ansi",     icon: "⚡", label: "ANSI Log Converter" },
-];
-
-function Sidebar({ activeTool, onSelect }: { activeTool: Tool; onSelect: (t: Tool) => void }) {
-  const base: React.CSSProperties = {
-    display: "flex", alignItems: "center", gap: 10,
-    padding: "9px 14px", fontSize: 13,
-    borderLeft: "2px solid transparent", margin: "1px 0",
-    cursor: "pointer", background: "none", border: "none",
-    width: "100%", textAlign: "left", color: "#6b7280",
-    transition: "all 0.15s",
-  };
-  return (
-    <nav style={{
-      width: 200, background: "#f8fafc",
-      borderRight: "1px solid #e2e8f0",
-      display: "flex", flexDirection: "column",
-      flexShrink: 0, height: "100vh",
-      position: "sticky", top: 0,
-    }}>
-      <div style={{ padding: "18px 16px 14px", borderBottom: "1px solid #e2e8f0", marginBottom: 8 }}>
-        <div style={{ fontWeight: 700, fontSize: 13, color: "#111827" }}>zutils</div>
-        <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 2, letterSpacing: "0.5px" }}>Developer Tools</div>
-      </div>
-      <div style={{ padding: "6px 12px 4px", fontSize: 9, fontWeight: 700, letterSpacing: "1.5px", textTransform: "uppercase", color: "#d1d5db" }}>Tools</div>
-      {TOOLS.map(t => (
-        <button key={t.id} onClick={() => onSelect(t.id)} style={
-          activeTool === t.id
-            ? { ...base, color: "#2563eb", borderLeftColor: "#2563eb", background: "rgba(37,99,235,0.05)" }
-            : base
-        }>
-          <span style={{ fontSize: 15 }}>{t.icon}</span> {t.label}
-        </button>
-      ))}
-    </nav>
-  );
-}
-
 let nextId = 1;
 
 export default function App() {
-  const [activeTool, setActiveTool] = useState<Tool>("calendar");
   const [calendars, setCalendars] = useState<CalendarData[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -429,7 +429,7 @@ export default function App() {
   };
 
   const globalDownloadCSV = () => {
-    const all = Array.from(exportHandles.current.values()).map(h => `# ${h.fileName}\n${h.getCSV()}`).join("\n\n");
+    const all = Array.from(exportHandles.current.values()).map(h => `=== ${h.fileName} ===\n${h.getCSV()}`).join("\n\n");
     const blob = new Blob([all], { type: "text/csv" });
     const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: "all_schedules.csv" });
     a.click(); URL.revokeObjectURL(a.href);
@@ -449,7 +449,7 @@ export default function App() {
   };
 
   const globalCopy = () => {
-    const all = Array.from(exportHandles.current.values()).map(h => `# ${h.fileName}\n${h.getCSV()}`).join("\n\n");
+    const all = Array.from(exportHandles.current.values()).map(h => `=== ${h.fileName} ===\n${h.getCSV()}`).join("\n\n");
     navigator.clipboard.writeText(all);
     setGlobalCopied(true);
     setTimeout(() => setGlobalCopied(false), 2000);
@@ -461,9 +461,7 @@ export default function App() {
   };
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", fontFamily: "sans-serif", fontSize: 13 }}>
-      <Sidebar activeTool={activeTool} onSelect={setActiveTool} />
-      {activeTool === "ansi" ? <AnsiConverter /> : <div style={{ flex: 1, padding: 20, maxWidth: "100%", minWidth: 0 }}>
+    <div style={{ fontFamily: "sans-serif", padding: 20, fontSize: 13, maxWidth: "100%" }}>
       <h2 style={{ marginBottom: 4 }}>On-Call Schedule → CSV / Excel</h2>
       <p style={{ color: "#6b7280", marginBottom: 16 }}>Upload one or more PagerDuty .ics files.</p>
 
@@ -481,7 +479,7 @@ export default function App() {
         <div style={{ fontWeight: 600, color: "#374151" }}>Drop .ics files here</div>
         <div style={{ color: "#9ca3af", marginTop: 4 }}>or click to browse (multiple files supported)</div>
         <input ref={fileRef} type="file" accept=".ics" multiple style={{ display: "none" }}
-          onChange={(e: ChangeEvent<HTMLInputElement>) => { handleFiles(e.target.files); e.target.value = ""; }} />
+          onChange={(e: ChangeEvent<HTMLInputElement>) => handleFiles(e.target.files)} />
       </div>
 
       {calendars.length > 0 && (
@@ -531,7 +529,6 @@ export default function App() {
           </div>
         );
       })()}
-      </div>}
     </div>
   );
 }
