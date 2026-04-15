@@ -1,10 +1,13 @@
 {
   "files": {
-    "main.js": "/zutils/static/js/main.9ac278fc.js",
+    "main.css": "/zutils/static/css/main.a4719292.css",
+    "main.js": "/zutils/static/js/main.a0139461.js",
     "index.html": "/zutils/index.html",
-    "main.9ac278fc.js.map": "/zutils/static/js/main.9ac278fc.js.map"
+    "main.a4719292.css.map": "/zutils/static/css/main.a4719292.css.map",
+    "main.a0139461.js.map": "/zutils/static/js/main.a0139461.js.map"
   },
   "entrypoints": [
-    "static/js/main.9ac278fc.js"
+    "static/css/main.a4719292.css",
+    "static/js/main.a0139461.js"
   ]
 }
