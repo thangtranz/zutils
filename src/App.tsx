@@ -53,8 +53,8 @@ export default function App() {
       </nav>
 
       {/* MAIN CONTENT */}
-      <main style={{ flex: 1, overflow: "auto", background: "#fff" }}>
-        {page === "pagerduty" && <PagerDutyCalendar />}
+      <main style={{ flex: 1, overflow: "hidden", display: "flex", background: "#fff" }}>
+        {page === "pagerduty" && <div style={{ flex: 1, overflow: "auto", minWidth: 0 }}><PagerDutyCalendar /></div>}
         {page === "ansi" && <AnsiConverter />}
       </main>
     </div>
