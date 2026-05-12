@@ -105,7 +105,7 @@ export default function AnsiConverter() {
   const [hasOutput, setHasOutput] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [toast, setToast] = useState<{ msg: string; color: string } | null>(null);
-  const [stats, setStats] = useState({ lines: 0, errors: 0, infos: 0, size: "0 B" });
+  const [stats, setStats] = useState({ lines: 0, errors: 0, warns: 0, infos: 0, size: "0 B" });
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const toastTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
@@ -119,6 +119,7 @@ export default function AnsiConverter() {
     setStats({
       lines: raw ? raw.split("\n").length : 0,
       errors: (raw.match(/\[31m/g) || []).length,
+      warns: (raw.match(/\[33m/g) || []).length,
       infos: (raw.match(/\[34m/g) || []).length,
       size: calcSize(raw),
     });
@@ -248,6 +249,7 @@ export default function AnsiConverter() {
           <div className="ansi-stats">
             <div className="ansi-stat"><b>{stats.lines.toLocaleString()}</b> lines</div>
             <div className="ansi-stat"><b>{stats.errors}</b> errors</div>
+            <div className="ansi-stat"><b>{stats.warns}</b> warns</div>
             <div className="ansi-stat"><b>{stats.infos}</b> info</div>
             <div className="ansi-stat" style={{ marginLeft: "auto" }}><b>{stats.size}</b></div>
           </div>
