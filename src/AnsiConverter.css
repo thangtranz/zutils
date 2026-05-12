@@ -1,12 +1,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap');
 
 .ansi-root {
-  --bg:      #0a0c10;
-  --surface: #111318;
-  --border:  #1e2330;
-  --border2: #252b3b;
-  --text:    #cdd5e0;
-  --muted:   #5a6478;
+  --bg:      var(--bg-panel);
+  --surface: var(--bg-panel-secondary);
+  --border:  var(--border-color);
+  --border2: var(--border-color);
+  --text:    var(--text-primary);
+  --muted:   var(--text-muted);
   --accent:  #4fc1ff;
   --accent2: #7c5cfc;
   --success: #57c96b;
@@ -46,7 +46,7 @@
   font-family: 'Space Mono', monospace;
   font-size: 15px;
   font-weight: 700;
-  color: #e6edf3;
+  color: var(--text-primary);
   letter-spacing: -0.3px;
   margin: 0;
 }
@@ -124,10 +124,10 @@
   color: #fff;
 }
 .ansi-btn.primary:hover { background: #6a4de8; border-color: #6a4de8; }
-.ansi-btn.danger-btn { color: var(--danger); border-color: #3a1e1e; }
-.ansi-btn.danger-btn:hover { background: #1e1010; }
-.ansi-btn.copy-btn { color: var(--success); border-color: #1a3020; }
-.ansi-btn.copy-btn:hover { background: #0d1e12; }
+.ansi-btn.danger-btn { color: var(--danger); border-color: rgba(244, 112, 103, 0.3); }
+.ansi-btn.danger-btn:hover { background: rgba(244, 112, 103, 0.1); }
+.ansi-btn.copy-btn { color: var(--success); border-color: rgba(87, 201, 107, 0.3); }
+.ansi-btn.copy-btn:hover { background: rgba(87, 201, 107, 0.1); }
 .ansi-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* ── TEXTAREA ── */
@@ -135,7 +135,7 @@
   flex: 1;
   width: 100%;
   background: var(--bg);
-  color: #8b949e;
+  color: var(--text-secondary);
   font-family: 'Space Mono', monospace;
   font-size: 11.5px;
   line-height: 1.7;
@@ -145,7 +145,7 @@
   resize: none;
   tab-size: 4;
 }
-.ansi-root textarea::placeholder { color: #2e3545; }
+.ansi-root textarea::placeholder { color: var(--text-muted); opacity: 0.6; }
 .ansi-root textarea::-webkit-scrollbar { width: 5px; }
 .ansi-root textarea::-webkit-scrollbar-track { background: transparent; }
 .ansi-root textarea::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }

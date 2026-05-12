@@ -111,9 +111,9 @@ function Btn({ label, onClick, color }: { label: string; onClick: () => void; co
 
 function cellStyle(c: 8 | ""): React.CSSProperties {
   return {
-    border: "1px solid #ddd", padding: "4px 6px", textAlign: "center",
+    border: "1px solid var(--border-color)", padding: "4px 6px", textAlign: "center",
     background: c === 8 ? "#dbeafe" : "transparent",
-    color: c === 8 ? "#1d4ed8" : "#999",
+    color: c === 8 ? "#1d4ed8" : "var(--text-muted)",
     fontWeight: c === 8 ? 700 : 400
   };
 }
@@ -226,8 +226,8 @@ function CalendarSection({ cal, onRemove, onRegister }: {
   };
 
   const nameCellStyle = (name: string): React.CSSProperties => ({
-    border: "1px solid #ddd", padding: "4px 8px", fontWeight: 600,
-    background: dragOverName === name ? "#fef9c3" : "#fafafa",
+    border: "1px solid var(--border-color)", padding: "4px 8px", fontWeight: 600,
+    background: dragOverName === name ? "#fef9c3" : "var(--bg-panel-secondary)",
     position: "sticky", left: 0, cursor: "grab",
     outline: draggingName === name ? "2px dashed #2563eb" : "none",
     userSelect: "none"
@@ -237,49 +237,49 @@ function CalendarSection({ cal, onRemove, onRegister }: {
     <td style={nameCellStyle(name)}>
       <span style={{ marginRight: 6 }}>⠿</span>
       <button onClick={() => moveUp(name)} disabled={ri === 0}
-        style={{ background: "none", border: "none", cursor: ri === 0 ? "default" : "pointer", color: ri === 0 ? "#d1d5db" : "#6b7280", padding: "0 2px", fontSize: 11 }}>▲</button>
+        style={{ background: "none", border: "none", cursor: ri === 0 ? "default" : "pointer", color: ri === 0 ? "var(--text-muted)" : "var(--text-secondary)", padding: "0 2px", fontSize: 11 }}>▲</button>
       <button onClick={() => moveDown(name)} disabled={ri === names.length - 1}
-        style={{ background: "none", border: "none", cursor: ri === names.length - 1 ? "default" : "pointer", color: ri === names.length - 1 ? "#d1d5db" : "#6b7280", padding: "0 2px", fontSize: 11 }}>▼</button>
+        style={{ background: "none", border: "none", cursor: ri === names.length - 1 ? "default" : "pointer", color: ri === names.length - 1 ? "var(--text-muted)" : "var(--text-secondary)", padding: "0 2px", fontSize: 11 }}>▼</button>
       {" "}{name}
     </td>
   );
 
   const sel = (val: string | number, onChange: (v: string) => void, opts: (string | number)[], labels?: string[]) => (
     <select value={val} onChange={e => onChange(e.target.value)}
-      style={{ padding: "4px 8px", borderRadius: 4, border: "1px solid #ccc" }}>
+      style={{ padding: "4px 8px", borderRadius: 4, border: "1px solid var(--border-color)", background: "var(--bg-panel)", color: "var(--text-primary)" }}>
       {opts.map((o, i) => <option key={o} value={o}>{labels ? labels[i] : o}</option>)}
     </select>
   );
 
   const countStyle: React.CSSProperties = {
-    border: "1px solid #ddd", padding: "4px 8px", textAlign: "center",
+    border: "1px solid var(--border-color)", padding: "4px 8px", textAlign: "center",
     background: "#f0fdf4", color: "#15803d", fontWeight: 700, minWidth: 40
   };
   const hoursStyle: React.CSSProperties = {
-    border: "1px solid #ddd", padding: "4px 8px", textAlign: "center",
+    border: "1px solid var(--border-color)", padding: "4px 8px", textAlign: "center",
     background: "#eff6ff", color: "#1d4ed8", fontWeight: 700, minWidth: 50
   };
 
   const renderTable = (sheet: Sheet) => (
     <div key={sheet.ym} style={{ overflowX: "auto", marginBottom: combined ? 0 : 24 }}>
-      {!combined && <div style={{ fontWeight: 700, color: "#374151", marginBottom: 6 }}>{monthLabel(sheet.ym)}</div>}
+      {!combined && <div style={{ fontWeight: 700, color: "var(--text-primary)", marginBottom: 6 }}>{monthLabel(sheet.ym)}</div>}
       <table style={{ borderCollapse: "collapse", whiteSpace: "nowrap" }}>
         <thead>
           <tr>
-            <th style={{ border: "1px solid #ddd", padding: "4px 8px", background: "#f3f4f6", position: "sticky", left: 0, zIndex: 1 }}>Name</th>
-            <th style={{ border: "1px solid #ddd", padding: "4px 8px", background: "#dcfce7", minWidth: 40, textAlign: "center" }}>#</th>
-            <th style={{ border: "1px solid #ddd", padding: "4px 8px", background: "#dbeafe", minWidth: 50, textAlign: "center" }}>Hrs</th>
-            {sheet.cols.map(d => <th key={d} style={{ border: "1px solid #ddd", padding: "4px 6px", background: "#f3f4f6", minWidth: 28, textAlign: "center" }}>{d}</th>)}
+            <th style={{ border: "1px solid var(--border-color)", padding: "4px 8px", background: "var(--bg-panel-secondary)", position: "sticky", left: 0, zIndex: 1, color: "var(--text-primary)" }}>Name</th>
+            <th style={{ border: "1px solid var(--border-color)", padding: "4px 8px", background: "#dcfce7", minWidth: 40, textAlign: "center" }}>#</th>
+            <th style={{ border: "1px solid var(--border-color)", padding: "4px 8px", background: "#dbeafe", minWidth: 50, textAlign: "center" }}>Hrs</th>
+            {sheet.cols.map(d => <th key={d} style={{ border: "1px solid var(--border-color)", padding: "4px 6px", background: "var(--bg-panel-secondary)", minWidth: 28, textAlign: "center", color: "var(--text-secondary)" }}>{d}</th>)}
           </tr>
           <tr>
-            <th style={{ border: "1px solid #ddd", padding: "4px 8px", background: "#e5e7eb", position: "sticky", left: 0, zIndex: 1 }}>Total</th>
-            <th style={{ border: "1px solid #ddd", padding: "4px 8px", background: "#bbf7d0", textAlign: "center", fontWeight: 700, color: "#15803d" }}>
+            <th style={{ border: "1px solid var(--border-color)", padding: "4px 8px", background: "var(--bg-panel)", position: "sticky", left: 0, zIndex: 1, color: "var(--text-primary)" }}>Total</th>
+            <th style={{ border: "1px solid var(--border-color)", padding: "4px 8px", background: "#bbf7d0", textAlign: "center", fontWeight: 700, color: "#15803d" }}>
               {sheet.rows.reduce((s, r) => s + r.cells.filter(c => c === 8).length, 0)}
             </th>
-            <th style={{ border: "1px solid #ddd", padding: "4px 8px", background: "#bfdbfe", textAlign: "center", fontWeight: 700, color: "#1d4ed8" }}>
+            <th style={{ border: "1px solid var(--border-color)", padding: "4px 8px", background: "#bfdbfe", textAlign: "center", fontWeight: 700, color: "#1d4ed8" }}>
               {sheet.rows.reduce((s, r) => s + r.cells.filter(c => c === 8).length, 0) * 8}
             </th>
-            <th colSpan={sheet.cols.length} style={{ border: "1px solid #ddd", padding: "4px 8px", background: "#e5e7eb", textAlign: "center", fontWeight: 700, color: "#374151" }}>
+            <th colSpan={sheet.cols.length} style={{ border: "1px solid var(--border-color)", padding: "4px 8px", background: "var(--bg-panel)", textAlign: "center", fontWeight: 700, color: "var(--text-primary)" }}>
               {!combined && monthLabel(sheet.ym)}
             </th>
           </tr>
@@ -297,14 +297,14 @@ function CalendarSection({ cal, onRemove, onRegister }: {
             );
           })}
           <tr>
-            <td style={{ border: "1px solid #ddd", padding: "4px 8px", fontWeight: 700, background: "#e5e7eb", position: "sticky", left: 0 }}>Total</td>
-            <td style={{ border: "1px solid #ddd", padding: "4px 8px", textAlign: "center", background: "#bbf7d0", color: "#15803d", fontWeight: 700 }}>
+            <td style={{ border: "1px solid var(--border-color)", padding: "4px 8px", fontWeight: 700, background: "var(--bg-panel)", position: "sticky", left: 0, color: "var(--text-primary)" }}>Total</td>
+            <td style={{ border: "1px solid var(--border-color)", padding: "4px 8px", textAlign: "center", background: "#bbf7d0", color: "#15803d", fontWeight: 700 }}>
               {sheet.rows.reduce((s, r) => s + r.cells.filter(c => c === 8).length, 0)}
             </td>
-            <td style={{ border: "1px solid #ddd", padding: "4px 8px", textAlign: "center", background: "#bfdbfe", color: "#1d4ed8", fontWeight: 700 }}>
+            <td style={{ border: "1px solid var(--border-color)", padding: "4px 8px", textAlign: "center", background: "#bfdbfe", color: "#1d4ed8", fontWeight: 700 }}>
               {sheet.rows.reduce((s, r) => s + r.cells.filter(c => c === 8).length, 0) * 8}
             </td>
-            {sheet.cols.map((_, ci) => <td key={ci} style={{ border: "1px solid #ddd", background: "#f9fafb" }} />)}
+            {sheet.cols.map((_, ci) => <td key={ci} style={{ border: "1px solid var(--border-color)", background: "var(--bg-panel)" }} />)}
           </tr>
         </tbody>
       </table>
@@ -316,20 +316,20 @@ function CalendarSection({ cal, onRemove, onRegister }: {
       <table style={{ borderCollapse: "collapse", whiteSpace: "nowrap" }}>
         <thead>
           <tr>
-            <th style={{ border: "1px solid #ddd", padding: "4px 8px", background: "#f3f4f6", position: "sticky", left: 0, zIndex: 2 }}>Name</th>
-            <th style={{ border: "1px solid #ddd", padding: "4px 8px", background: "#dcfce7", minWidth: 40, textAlign: "center" }}>#</th>
-            <th style={{ border: "1px solid #ddd", padding: "4px 8px", background: "#dbeafe", minWidth: 50, textAlign: "center" }}>Hrs</th>
-            {sheets.map(s => s.cols.map(d => <th key={`${s.ym}-${d}`} style={{ border: "1px solid #ddd", padding: "4px 6px", background: "#f3f4f6", minWidth: 28, textAlign: "center" }}>{d}</th>))}
+            <th style={{ border: "1px solid var(--border-color)", padding: "4px 8px", background: "var(--bg-panel-secondary)", position: "sticky", left: 0, zIndex: 2, color: "var(--text-primary)" }}>Name</th>
+            <th style={{ border: "1px solid var(--border-color)", padding: "4px 8px", background: "#dcfce7", minWidth: 40, textAlign: "center" }}>#</th>
+            <th style={{ border: "1px solid var(--border-color)", padding: "4px 8px", background: "#dbeafe", minWidth: 50, textAlign: "center" }}>Hrs</th>
+            {sheets.map(s => s.cols.map(d => <th key={`${s.ym}-${d}`} style={{ border: "1px solid var(--border-color)", padding: "4px 6px", background: "var(--bg-panel-secondary)", minWidth: 28, textAlign: "center", color: "var(--text-secondary)" }}>{d}</th>))}
           </tr>
           <tr>
-            <th style={{ border: "1px solid #ddd", padding: "4px 8px", background: "#e5e7eb", position: "sticky", left: 0, zIndex: 2 }}>Total</th>
-            <th style={{ border: "1px solid #ddd", padding: "4px 8px", background: "#bbf7d0", textAlign: "center", fontWeight: 700, color: "#15803d" }}>
+            <th style={{ border: "1px solid var(--border-color)", padding: "4px 8px", background: "var(--bg-panel)", position: "sticky", left: 0, zIndex: 2, color: "var(--text-primary)" }}>Total</th>
+            <th style={{ border: "1px solid var(--border-color)", padding: "4px 8px", background: "#bbf7d0", textAlign: "center", fontWeight: 700, color: "#15803d" }}>
               {names.reduce((sum, _, ri) => sum + sheets.reduce((s2, sh) => s2 + sh.rows[ri].cells.filter(c => c === 8).length, 0), 0)}
             </th>
-            <th style={{ border: "1px solid #ddd", padding: "4px 8px", background: "#bfdbfe", textAlign: "center", fontWeight: 700, color: "#1d4ed8" }}>
+            <th style={{ border: "1px solid var(--border-color)", padding: "4px 8px", background: "#bfdbfe", textAlign: "center", fontWeight: 700, color: "#1d4ed8" }}>
               {names.reduce((sum, _, ri) => sum + sheets.reduce((s2, sh) => s2 + sh.rows[ri].cells.filter(c => c === 8).length, 0), 0) * 8}
             </th>
-            {sheets.map(s => <th key={s.ym} colSpan={s.cols.length} style={{ border: "1px solid #ddd", padding: "4px 8px", background: "#e5e7eb", textAlign: "center", fontWeight: 700, color: "#374151" }}>{monthLabel(s.ym)}</th>)}
+            {sheets.map(s => <th key={s.ym} colSpan={s.cols.length} style={{ border: "1px solid var(--border-color)", padding: "4px 8px", background: "var(--bg-panel)", textAlign: "center", fontWeight: 700, color: "var(--text-primary)" }}>{monthLabel(s.ym)}</th>)}
           </tr>
         </thead>
         <tbody>
@@ -350,30 +350,30 @@ function CalendarSection({ cal, onRemove, onRegister }: {
   );
 
   return (
-    <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: 16, marginBottom: 24 }}>
+    <div style={{ border: "1px solid var(--border-color)", borderRadius: 8, padding: 16, marginBottom: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-        <h3 style={{ margin: 0, color: "#1f2937", fontSize: 15 }}>📅 {cal.fileName}</h3>
+        <h3 style={{ margin: 0, color: "var(--text-primary)", fontSize: 15 }}>📅 {cal.fileName}</h3>
         <button onClick={() => onRemove(cal.id)}
           style={{ background: "none", border: "1px solid #fca5a5", color: "#ef4444", borderRadius: 4, padding: "2px 8px", cursor: "pointer", fontSize: 12 }}>
           ✕ Remove
         </button>
       </div>
       <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
-        <label style={{ color: "#374151" }}>From</label>
+        <label style={{ color: "var(--text-primary)" }}>From</label>
         {sel(fromDay, v => setFromDay(parseInt(v)), fromDayOptions)}
         {sel(fromYM, v => { setFromYM(v); setFromDay(21); if (v > toYM) { setToYM(v); setToDay(20); } }, cal.allSheets.map(s => s.ym), cal.allSheets.map(s => monthLabel(s.ym)))}
-        <label style={{ color: "#374151" }}>To</label>
+        <label style={{ color: "var(--text-primary)" }}>To</label>
         {sel(toDay, v => setToDay(parseInt(v)), toDayOptions)}
         {sel(toYM, v => { setToYM(v); setToDay(20); }, toYMOptions.map(s => s.ym), toYMOptions.map(s => monthLabel(s.ym)))}
         <Btn label="⬇ CSV" onClick={downloadCSV} color="#2563eb" />
         <Btn label="⬇ Excel" onClick={downloadExcel} color="#16a34a" />
         <Btn label={copied ? "✓ Copied!" : "📋 Copy"} onClick={copy} color={copied ? "#16a34a" : "#7c3aed"} />
-        <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", color: "#374151" }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", color: "var(--text-primary)" }}>
           <input type="checkbox" checked={combined} onChange={(e: ChangeEvent<HTMLInputElement>) => setCombined(e.target.checked)} />
           Combined table
         </label>
       </div>
-      <p style={{ color: "#9ca3af", fontSize: 12, marginBottom: 8, marginTop: 0 }}>Drag rows or use ▲▼ to reorder.</p>
+      <p style={{ color: "var(--text-muted)", fontSize: 12, marginBottom: 8, marginTop: 0 }}>Drag rows or use ▲▼ to reorder.</p>
       {combined ? renderCombined() : sheets.map(s => renderTable(s))}
     </div>
   );
@@ -458,29 +458,29 @@ export default function PagerDutyCalendar() {
 
   return (
     <div style={{ fontFamily: "sans-serif", padding: 20, fontSize: 13, maxWidth: "100%" }}>
-      <h2 style={{ marginBottom: 4 }}>On-Call Schedule → CSV / Excel</h2>
-      <p style={{ color: "#6b7280", marginBottom: 16 }}>Upload one or more PagerDuty .ics files.</p>
+      <h2 style={{ marginBottom: 4, color: "var(--text-primary)" }}>On-Call Schedule → CSV / Excel</h2>
+      <p style={{ color: "var(--text-secondary)", marginBottom: 16 }}>Upload one or more PagerDuty .ics files.</p>
 
       <div onClick={() => fileRef.current?.click()}
         onDragOver={e => { e.preventDefault(); setDragging(true); }}
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
         style={{
-          border: `2px dashed ${dragging ? "#2563eb" : "#d1d5db"}`,
+          border: `2px dashed ${dragging ? "#2563eb" : "var(--border-color)"}`,
           borderRadius: 8, padding: "24px 20px", textAlign: "center",
-          background: dragging ? "#eff6ff" : "#f9fafb",
+          background: dragging ? "#eff6ff" : "var(--bg-panel)",
           cursor: "pointer", marginBottom: 12, transition: "all 0.15s"
         }}>
         <div style={{ fontSize: 32, marginBottom: 8 }}>📅</div>
-        <div style={{ fontWeight: 600, color: "#374151" }}>Drop .ics files here</div>
-        <div style={{ color: "#9ca3af", marginTop: 4 }}>or click to browse (multiple files supported)</div>
+        <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>Drop .ics files here</div>
+        <div style={{ color: "var(--text-muted)", marginTop: 4 }}>or click to browse (multiple files supported)</div>
         <input ref={fileRef} type="file" accept=".ics" multiple style={{ display: "none" }}
           onChange={(e: ChangeEvent<HTMLInputElement>) => handleFiles(e.target.files)} />
       </div>
 
       {calendars.length > 0 && (
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", padding: "10px 14px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, marginBottom: 20 }}>
-          <span style={{ fontWeight: 600, color: "#374151", marginRight: 4 }}>All tables:</span>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", padding: "10px 14px", background: "var(--bg-panel-secondary)", border: "1px solid var(--border-color)", borderRadius: 8, marginBottom: 20 }}>
+          <span style={{ fontWeight: 600, color: "var(--text-primary)", marginRight: 4 }}>All tables:</span>
           <Btn label="⬇ Download All CSV" onClick={globalDownloadCSV} color="#2563eb" />
           <Btn label="⬇ Download All Excel" onClick={globalDownloadExcel} color="#16a34a" />
           <Btn label={globalCopied ? "✓ Copied!" : "📋 Copy All CSV"} onClick={globalCopy} color={globalCopied ? "#16a34a" : "#7c3aed"} />
@@ -502,22 +502,22 @@ export default function PagerDutyCalendar() {
         });
         const rows = Array.from(totals.entries()).sort((a, b) => a[0].localeCompare(b[0]));
         return (
-          <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: 16, marginBottom: 24 }}>
-            <h3 style={{ margin: "0 0 12px 0", color: "#1f2937", fontSize: 15 }}>📊 Statistics — All Tables</h3>
+          <div style={{ border: "1px solid var(--border-color)", borderRadius: 8, padding: 16, marginBottom: 24 }}>
+            <h3 style={{ margin: "0 0 12px 0", color: "var(--text-primary)", fontSize: 15 }}>📊 Statistics — All Tables</h3>
             <table style={{ borderCollapse: "collapse", whiteSpace: "nowrap" }}>
               <thead>
                 <tr>
-                  <th style={{ border: "1px solid #ddd", padding: "4px 12px", background: "#f3f4f6", textAlign: "left" }}>Name</th>
-                  <th style={{ border: "1px solid #ddd", padding: "4px 12px", background: "#dcfce7", textAlign: "center" }}>Total Days</th>
-                  <th style={{ border: "1px solid #ddd", padding: "4px 12px", background: "#dbeafe", textAlign: "center" }}>Total Hours</th>
+                  <th style={{ border: "1px solid var(--border-color)", padding: "4px 12px", background: "var(--bg-panel-secondary)", textAlign: "left", color: "var(--text-primary)" }}>Name</th>
+                  <th style={{ border: "1px solid var(--border-color)", padding: "4px 12px", background: "#dcfce7", textAlign: "center" }}>Total Days</th>
+                  <th style={{ border: "1px solid var(--border-color)", padding: "4px 12px", background: "#dbeafe", textAlign: "center" }}>Total Hours</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map(([name, days]) => (
                   <tr key={name}>
-                    <td style={{ border: "1px solid #ddd", padding: "4px 12px", fontWeight: 600 }}>{name}</td>
-                    <td style={{ border: "1px solid #ddd", padding: "4px 12px", textAlign: "center", background: "#f0fdf4", color: "#15803d", fontWeight: 700 }}>{days}</td>
-                    <td style={{ border: "1px solid #ddd", padding: "4px 12px", textAlign: "center", background: "#eff6ff", color: "#1d4ed8", fontWeight: 700 }}>{days * 8}</td>
+                    <td style={{ border: "1px solid var(--border-color)", padding: "4px 12px", fontWeight: 600, color: "var(--text-primary)" }}>{name}</td>
+                    <td style={{ border: "1px solid var(--border-color)", padding: "4px 12px", textAlign: "center", background: "#f0fdf4", color: "#15803d", fontWeight: 700 }}>{days}</td>
+                    <td style={{ border: "1px solid var(--border-color)", padding: "4px 12px", textAlign: "center", background: "#eff6ff", color: "#1d4ed8", fontWeight: 700 }}>{days * 8}</td>
                   </tr>
                 ))}
               </tbody>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import PagerDutyCalendar from "./PagerDutyCalendar";
 import AnsiConverter from "./AnsiConverter";
+import { useTheme } from "./ThemeContext";
 
 type Page = "pagerduty" | "ansi";
 
@@ -11,6 +12,7 @@ const NAV_ITEMS: { id: Page; label: string; icon: string }[] = [
 
 export default function App() {
   const [page, setPage] = useState<Page>("pagerduty");
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <div style={{ display: "flex", height: "100vh", fontFamily: "sans-serif", fontSize: 13 }}>
@@ -18,12 +20,12 @@ export default function App() {
       <nav style={{
         width: 200,
         flexShrink: 0,
-        background: "#1e2330",
+        background: "var(--bg-sidebar)",
         display: "flex",
         flexDirection: "column",
         padding: "16px 0",
       }}>
-        <div style={{ padding: "0 16px 20px", color: "#e2e8f0", fontWeight: 700, fontSize: 14, letterSpacing: 0.5 }}>
+        <div style={{ padding: "0 16px 20px", color: "var(--text-primary)", fontWeight: 700, fontSize: 14, letterSpacing: 0.5 }}>
           ZUtils
         </div>
         {NAV_ITEMS.map(item => (
@@ -35,10 +37,10 @@ export default function App() {
               alignItems: "center",
               gap: 10,
               padding: "10px 16px",
-              background: page === item.id ? "#2d3748" : "transparent",
+              background: page === item.id ? "var(--bg-sidebar-active)" : "transparent",
               border: "none",
               borderLeft: page === item.id ? "3px solid #4f80ff" : "3px solid transparent",
-              color: page === item.id ? "#e2e8f0" : "#94a3b8",
+              color: page === item.id ? "var(--text-primary)" : "var(--text-secondary)",
               cursor: "pointer",
               fontSize: 13,
               textAlign: "left",
@@ -50,10 +52,33 @@ export default function App() {
             {item.label}
           </button>
         ))}
+
+        {/* THEME TOGGLE */}
+        <button
+          onClick={toggleTheme}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "10px 16px",
+            marginTop: "auto",
+            background: "transparent",
+            border: "none",
+            borderTop: "1px solid var(--bg-sidebar-active)",
+            color: "var(--text-secondary)",
+            cursor: "pointer",
+            fontSize: 12,
+            textAlign: "left",
+            width: "100%",
+          }}
+        >
+          <span style={{ fontSize: 15 }}>{theme === "dark" ? "🌙" : "☀"}</span>
+          {theme === "dark" ? "Dark mode" : "Light mode"}
+        </button>
       </nav>
 
       {/* MAIN CONTENT */}
-      <main style={{ flex: 1, overflow: "hidden", display: "flex", background: "#fff" }}>
+      <main style={{ flex: 1, overflow: "hidden", display: "flex", background: "var(--bg-main)" }}>
         {page === "pagerduty" && <div style={{ flex: 1, overflow: "auto", minWidth: 0 }}><PagerDutyCalendar /></div>}
         {page === "ansi" && <AnsiConverter />}
       </main>
