@@ -1,4 +1,5 @@
 node_modules/
+server/node_modules/
 dist/
 build/
 .DS_Store
@@ -6,3 +7,4 @@ build/
 
 .github
 .claude
+.gemini
