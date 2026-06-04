@@ -65,3 +65,37 @@ The exported PDF MUST use the active theme's colors. The page background and foo
 
 - **WHEN** the document is printed
 - **THEN** the content sets `print-color-adjust: exact` so theme background and colors render rather than being suppressed
+
+### Requirement: Print Typography
+
+The exported PDF MUST present consistent, document-style typography regardless of the on-screen preview styling. The export MUST apply a deterministic print-only stylesheet (a `@media print` sheet injected into the document head, scoped to the paginated `#mdp-paged` output, using `!important`) that sets body and heading font sizes, line spacing, fonts, and block spacing, and MUST preserve A4 page size with comfortable document margins.
+
+#### Scenario: Body text and line spacing
+
+- **WHEN** a document is exported
+- **THEN** body text renders at a fixed body size (14px) with 1.6 line spacing
+
+#### Scenario: Heading hierarchy
+
+- **WHEN** a document containing headings is exported
+- **THEN** headings render at a descending size scale (h1 largest through h4) with tighter heading line spacing, so the hierarchy is visually distinct from body text
+
+#### Scenario: Sans-serif text, monospace code
+
+- **WHEN** a document containing prose and code is exported
+- **THEN** prose renders in a sans-serif font and inline/block code renders in a monospace font
+
+#### Scenario: Mermaid diagram fonts preserved
+
+- **WHEN** a document containing rendered Mermaid diagrams is exported
+- **THEN** the global font/line-spacing overrides do not reach the diagram SVGs, so diagram labels keep the font they were measured with and do not overflow their shapes
+
+#### Scenario: Block spacing
+
+- **WHEN** a document is exported
+- **THEN** paragraphs, list items, and blockquotes use compact, even vertical spacing (no large top margins) so blocks read as a continuous document
+
+#### Scenario: Overrides removed after export
+
+- **WHEN** the print dialog is closed (or the export errors)
+- **THEN** the injected print stylesheet is removed from the document head along with the off-screen target, leaving the on-screen app styling unchanged

@@ -38,13 +38,27 @@ The print stylesheet is built as a string at export time and passed to Paged.js 
 
 ```
 @page {
-  size: A4; margin: 16mm 14mm 18mm;
+  size: A4; margin: 20mm 24mm 18mm;
   @bottom-left  { content: "<timestamp>"; ... }
   @bottom-right { content: "Page " counter(page) " of " counter(pages); ... }
 }
 ```
 
-Building the CSS at click time lets the live timestamp be interpolated directly into the `content` string.
+Building the CSS at click time lets the live timestamp be interpolated directly into the `content` string. Page margins are `20mm 24mm 18mm` (top / sides / bottom) for a comfortable document text measure.
+
+### Deterministic print typography
+
+The on-screen preview styling is not what we want in the PDF, and Paged.js clones nodes per page during layout so styles handed to the Previewer (or set inline on the source) don't reliably survive to the printed output. To get a consistent, document-style result we inject a second stylesheet — a plain `@media print` sheet (`#mdp-print-style`) appended to `document.head`, scoped to `#mdp-paged .pagedjs_page_content`, using `!important` so it wins at print time:
+
+- Body text 14px / line-height 1.6; headings on a descending scale (h1 26px, h2 21px, h3 17px, h4 14px) with tighter 1.25 leading.
+- Prose in a sans-serif stack; `code`/`pre` in a monospace stack.
+- Paragraphs, list items, and blockquotes get `margin-top: 0; margin-bottom: 0.5em` for compact, even block spacing.
+
+These sizes match a reference PDF. The Paged.js inline sheet also carries lighter `.mdp-content` spacing (1.6 line-height, `0.9em` block bottom margins, list-item margins) for the cloned content; the head-injected `!important` sheet is the authoritative layer for the rendered pages.
+
+**Mermaid carve-out:** the global font/line-height overrides must *not* reach diagram SVGs — Mermaid measures label text in its own font (`"trebuchet ms", verdana, arial`) to size the boxes, so forcing a different font there makes labels overflow their shapes. A final rule re-asserts the Mermaid font and `line-height: normal` on `svg, svg *`, placed last so it wins.
+
+The injected `#mdp-print-style` element is removed in the same `afterprint`/error cleanup that removes `#mdp-paged`, so on-screen styling is untouched.
 
 ### Local-time timestamp
 
