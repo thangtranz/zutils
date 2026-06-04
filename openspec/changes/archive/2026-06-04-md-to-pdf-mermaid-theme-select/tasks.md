@@ -17,6 +17,6 @@
 ## 4. Verification
 
 - [x] 4.1 `npm run build` succeeds with no type errors and no new bundle/dependency added
-- [ ] 4.2 With the selector at "Auto", toggling the app theme still recolors diagrams (default/dark) — existing behavior preserved
-- [ ] 4.3 Selecting an explicit theme (e.g. `forest`) re-renders the preview immediately and does not change when the app theme is toggled
-- [ ] 4.4 Export after selecting a theme produces a PDF whose diagrams use the selected theme
+- [x] 4.2 With the selector at "Auto", toggling the app theme still recolors diagrams (default/dark) — existing behavior preserved
+- [x] 4.3 Selecting an explicit theme (e.g. `forest`) re-renders the preview immediately and does not change when the app theme is toggled
+- [x] 4.4 Export after selecting a theme produces a PDF whose diagrams use the selected theme
