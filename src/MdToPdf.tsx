@@ -82,11 +82,10 @@ const PAGE_CONTENT_W = (210 - 24 * 2) * MM_TO_PX; // ≈ 612px
 const PAGE_CONTENT_H = (297 - 20 - 18 - 6) * MM_TO_PX; // ≈ 956px
 
 // Lock every rendered Mermaid SVG to an explicit pixel size that fits one page,
-// preserving aspect ratio and never upscaling. Done before Paged.js sees the
-// clone so the size is final at measure time — this both prevents diagrams from
-// overflowing/splitting and avoids the ResizeObserver crash a later CSS-driven
-// resize would cause. Reads the viewBox (intrinsic size) since Mermaid's width
-// attribute is "100%", not a pixel value.
+// preserving aspect ratio and never upscaling. Done on the print clone before
+// the browser paginates it, so a diagram never overflows the page width. Reads
+// the viewBox (intrinsic size) since Mermaid's width attribute is "100%", not a
+// pixel value.
 function fitDiagramsToPage(root: HTMLElement): void {
   root.querySelectorAll<SVGSVGElement>("pre.mermaid svg").forEach(svg => {
     const vb = svg.getAttribute("viewBox");
@@ -160,11 +159,9 @@ export default function MdToPdf() {
           startOnLoad: false,
           theme: effectiveMermaidTheme,
           securityLevel: "loose",
-          // Render labels as plain SVG <text>, not HTML <foreignObject>. The
-          // foreignObject DOM Mermaid embeds otherwise is what makes Paged.js's
-          // break-token walk throw during pagination — disabling it lets the
-          // Paged.js path (with the custom footer) succeed instead of falling
-          // back to native print.
+          // Render labels as plain SVG <text>, not HTML <foreignObject>, so
+          // diagram labels render reliably in the printed PDF (foreignObject
+          // content is inconsistently rasterized by print engines).
           htmlLabels: false,
           flowchart: { htmlLabels: false },
         });
@@ -196,9 +193,13 @@ export default function MdToPdf() {
     reader.readAsText(file);
   }, []);
 
-  // Export to PDF. We paginate the rendered preview with Paged.js (lazy-loaded)
-  // into an off-screen target, then print it.
-  const exportPdf = useCallback(async () => {
+  // Export to PDF via the browser's native print. We clone the rendered
+  // preview, lock each diagram to a one-page pixel size, drop the clone into an
+  // off-screen #mdp-fallback container, hide the app UI for print, and call
+  // window.print(). We deliberately do NOT paginate with Paged.js: native print
+  // keeps Chrome's "Headers and footers" dialog option available and lets the
+  // title/URL overrides below surface in (or stay suppressed from) the header.
+  const exportPdf = useCallback(() => {
     const el = previewRef.current;
     if (!el) return;
 
@@ -225,210 +226,85 @@ export default function MdToPdf() {
         }
       };
     };
-    let restorePageIdentity = () => {};
+    // Off-screen clone of the rendered preview. Lock each diagram to a fixed
+    // pixel size that fits one A4 content box so no diagram overflows the page
+    // width when the browser paginates it for print.
+    document.getElementById("mdp-fallback")?.remove();
+    document.getElementById("mdp-fallback-style")?.remove();
 
-    const printCss = `
-      @page {
-        size: A4;
-        margin: 20mm 24mm 18mm;
-      }
-      .pagedjs_page { background: ${palette.bg}; }
-      .pagedjs_page_content .mdp-content {
-        max-width: none;
-        margin: 0;
-        padding: 0;
-        line-height: 1.6;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-      }
-      .pagedjs_page_content .mdp-content p,
-      .pagedjs_page_content .mdp-content ul,
-      .pagedjs_page_content .mdp-content ol,
-      .pagedjs_page_content .mdp-content blockquote,
-      .pagedjs_page_content .mdp-content table,
-      .pagedjs_page_content .mdp-content pre {
-        margin-top: 0;
-        margin-bottom: 0.9em;
-      }
-      .pagedjs_page_content .mdp-content li { margin: 0.3em 0; }
-      .pagedjs_page_content .mdp-content li > p { margin: 0; }
-      /* An <svg> is an atomic element — Paged.js can't split inside it — and
-         fitDiagramsToPage() has already scaled each diagram to fit within a
-         single page, so a diagram that doesn't fit the remaining space is
-         pushed whole to the next page on its own. We deliberately do NOT set
-         break-inside: avoid here: Paged.js's break-token walk has a null-deref
-         bug when relocating an "avoid" block (crashes in createBreakToken /
-         findBreakToken), and it is redundant given the atomic SVG sizing. */
-      pre.mermaid {
-        text-align: center;
-      }
-    `;
+    const clone = el.cloneNode(true) as HTMLElement;
+    fitDiagramsToPage(clone);
+    const fb = document.createElement("div");
+    fb.id = "mdp-fallback";
+    fb.appendChild(clone);
+    document.body.appendChild(fb);
 
-    // Fresh off-screen target each run (off-screen, not display:none, so
-    // Paged.js can still measure element heights for pagination).
-    document.getElementById("mdp-paged")?.remove();
-    const target = document.createElement("div");
-    target.id = "mdp-paged";
-    document.body.appendChild(target);
-
-    // Document-level print overrides. Paged.js clones nodes per page during
-    // layout, so styles passed to it (or set inline on the source) don't
-    // reliably survive. A normal @media print sheet in the document head, with
-    // !important, applies to the rendered .pagedjs_page_content at print time.
-    document.getElementById("mdp-print-style")?.remove();
+    // Print-only sheet: hide the app UI so only the document prints, force a
+    // light, full-width, color-exact render so it's readable regardless of the
+    // app theme, and apply deterministic document typography (14px body, 1.6
+    // leading, GitHub heading scale, sans-serif prose / monospace code) so the
+    // PDF reads as a clean document rather than the on-screen preview styling.
     const styleEl = document.createElement("style");
-    styleEl.id = "mdp-print-style";
+    styleEl.id = "mdp-fallback-style";
     styleEl.textContent = `
+      @media screen { #mdp-fallback { display: none; } }
       @media print {
-        /* Match the reference PDF: 14px body, 1.6 line spacing, GitHub heading
-           sizes. Deterministic via !important since Paged.js doesn't reliably
-           apply the .mdp-content stylesheet to its paged output. */
-        #mdp-paged .pagedjs_page_content {
-          font-size: 14px !important;
-          line-height: 1.6 !important;
+        @page { size: A4; margin: 20mm 24mm 18mm; }
+        #root { display: none !important; }
+        #mdp-fallback { display: block !important; }
+        #mdp-fallback .mdp-content {
+          --mdp-bg: #ffffff; --mdp-fg: #1f2328; --mdp-muted: #656d76;
+          --mdp-border: #d0d7de; --mdp-code-bg: #f6f8fa; --mdp-link: #0969da;
+          max-width: none !important; margin: 0 !important;
+          /* @page already supplies the page margin — drop .mdp-content's own
+             padding so the two don't stack into a double margin. */
+          padding: 0 !important;
+          font-size: 14px !important; line-height: 1.6 !important;
+          -webkit-print-color-adjust: exact; print-color-adjust: exact;
         }
-        #mdp-paged .pagedjs_page_content * {
-          line-height: 1.6 !important;
-        }
+        #mdp-fallback .mdp-content * { line-height: 1.6 !important; }
         /* Clean sans-serif for text, monospace only for code. */
-        #mdp-paged .pagedjs_page_content,
-        #mdp-paged .pagedjs_page_content *:not(code):not(pre) {
+        #mdp-fallback .mdp-content,
+        #mdp-fallback .mdp-content *:not(code):not(pre) {
           font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
         }
-        #mdp-paged .pagedjs_page_content code,
-        #mdp-paged .pagedjs_page_content pre,
-        #mdp-paged .pagedjs_page_content pre * {
+        #mdp-fallback .mdp-content code,
+        #mdp-fallback .mdp-content pre,
+        #mdp-fallback .mdp-content pre * {
           font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
         }
         /* Restore Mermaid's own font/leading inside diagrams — it measured text
            in this font to size the boxes, so the global overrides above must not
            reach the SVG or labels overflow their shapes. Placed last to win. */
-        #mdp-paged .pagedjs_page_content svg,
-        #mdp-paged .pagedjs_page_content svg * {
+        #mdp-fallback .mdp-content svg,
+        #mdp-fallback .mdp-content svg * {
           font-family: "trebuchet ms", verdana, arial, sans-serif !important;
           line-height: normal !important;
         }
-        #mdp-paged .pagedjs_page_content h1 { font-size: 26px !important; line-height: 1.25 !important; }
-        #mdp-paged .pagedjs_page_content h2 { font-size: 21px !important; line-height: 1.25 !important; }
-        #mdp-paged .pagedjs_page_content h3 { font-size: 17px !important; line-height: 1.25 !important; }
-        #mdp-paged .pagedjs_page_content h4 { font-size: 14px !important; line-height: 1.25 !important; }
-        #mdp-paged .pagedjs_page_content p,
-        #mdp-paged .pagedjs_page_content li,
-        #mdp-paged .pagedjs_page_content blockquote {
-          margin-top: 0 !important;
-          margin-bottom: 0.5em !important;
+        #mdp-fallback .mdp-content h1 { font-size: 26px !important; line-height: 1.25 !important; }
+        #mdp-fallback .mdp-content h2 { font-size: 21px !important; line-height: 1.25 !important; }
+        #mdp-fallback .mdp-content h3 { font-size: 17px !important; line-height: 1.25 !important; }
+        #mdp-fallback .mdp-content h4 { font-size: 14px !important; line-height: 1.25 !important; }
+        #mdp-fallback .mdp-content p,
+        #mdp-fallback .mdp-content li,
+        #mdp-fallback .mdp-content blockquote {
+          margin-top: 0 !important; margin-bottom: 0.5em !important;
         }
+        #mdp-fallback pre.mermaid { text-align: center; }
       }
     `;
     document.head.appendChild(styleEl);
 
+    const restorePageIdentity = overridePageIdentity();
     const cleanup = () => {
-      target.remove();
+      fb.remove();
       styleEl.remove();
       restorePageIdentity();
       window.removeEventListener("afterprint", cleanup);
     };
-
-    // Clone the rendered preview and lock each diagram to a fixed pixel size
-    // that fits one A4 content box. Baking the size in *before* pagination
-    // means Paged.js measures the final size once — no post-layout reflow, so
-    // its ResizeObserver never fires against torn-down DOM, and no diagram
-    // overflows the page width or is split across a break.
-    const clone = el.cloneNode(true) as HTMLElement;
-    fitDiagramsToPage(clone);
-
-    // Fallback when Paged.js can't paginate the document (its break-token logic
-    // throws on some complex content — large code blocks, tables, SVG label DOM).
-    // Print the rendered preview directly via the browser. No custom per-page
-    // footer (Chrome can't render @page margin boxes without Paged.js), but the
-    // document — diagrams included — prints intact. Forces a light, full-width,
-    // color-exact render so it's readable regardless of the app theme.
-    const nativePrintFallback = () => {
-      document.getElementById("mdp-fallback")?.remove();
-      document.getElementById("mdp-fallback-style")?.remove();
-
-      const fresh = el.cloneNode(true) as HTMLElement;
-      fitDiagramsToPage(fresh);
-      const fb = document.createElement("div");
-      fb.id = "mdp-fallback";
-      fb.appendChild(fresh);
-      document.body.appendChild(fb);
-
-      const fbStyle = document.createElement("style");
-      fbStyle.id = "mdp-fallback-style";
-      fbStyle.textContent = `
-        @media screen { #mdp-fallback { display: none; } }
-        @media print {
-          @page { size: A4; margin: 20mm 24mm 18mm; }
-          #root, #mdp-paged { display: none !important; }
-          #mdp-fallback { display: block !important; }
-          #mdp-fallback .mdp-content {
-            --mdp-bg: #ffffff; --mdp-fg: #1f2328; --mdp-muted: #656d76;
-            --mdp-border: #d0d7de; --mdp-code-bg: #f6f8fa; --mdp-link: #0969da;
-            max-width: none !important; margin: 0 !important;
-            /* @page already supplies the page margin — drop .mdp-content's own
-               padding so the two don't stack into a double margin. */
-            padding: 0 !important;
-            -webkit-print-color-adjust: exact; print-color-adjust: exact;
-          }
-          #mdp-fallback pre.mermaid { text-align: center; }
-        }
-      `;
-      document.head.appendChild(fbStyle);
-
-      const fbCleanup = () => {
-        fb.remove();
-        fbStyle.remove();
-        restorePageIdentity();
-        window.removeEventListener("afterprint", fbCleanup);
-      };
-      window.addEventListener("afterprint", fbCleanup);
-      restorePageIdentity = overridePageIdentity();
-      window.print();
-    };
-
-    // Paged.js attaches a per-page ResizeObserver that re-runs layout whenever
-    // page content resizes after pagination (web fonts settling, the print
-    // reflow, our DOM teardown). That correction pass walks already-detached
-    // nodes and throws "Cannot read properties of null (reading 'nextSibling')".
-    // The observer is only a post-layout nicety — pagination itself doesn't need
-    // it — so we stub ResizeObserver to a no-op for the duration of preview().
-    // Observers created during layout are inert and stay inert; restoring the
-    // global afterwards is safe because Paged.js never creates more.
-    const RealResizeObserver = window.ResizeObserver;
-    (window as any).ResizeObserver = class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    };
-    const restoreResizeObserver = () => {
-      window.ResizeObserver = RealResizeObserver;
-    };
-
-    try {
-      const { Previewer } = await import("pagedjs");
-      const previewer = new Previewer();
-      await previewer.preview(
-        clone,
-        [{ "mdp-print.css": printCss }],
-        target
-      );
-      restoreResizeObserver();
-      window.addEventListener("afterprint", cleanup);
-      restorePageIdentity = overridePageIdentity();
-      window.print();
-    } catch (err) {
-      // Paged.js failed to paginate — discard its partial output and print
-      // natively so the user still gets a PDF (without the custom footer).
-      restoreResizeObserver();
-      cleanup();
-      console.warn(
-        "[MdToPdf] Paged.js pagination failed; using native print fallback:",
-        err
-      );
-      nativePrintFallback();
-    }
-  }, [palette, fileName]);
+    window.addEventListener("afterprint", cleanup);
+    window.print();
+  }, [fileName]);
 
   return (
     <div className="mdp-root">
