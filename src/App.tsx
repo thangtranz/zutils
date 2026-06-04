@@ -2,14 +2,16 @@ import { useState } from "react";
 import PagerDutyCalendar from "./PagerDutyCalendar";
 import AnsiConverter from "./AnsiConverter";
 import SqsVisualizer from "./SqsVisualizer";
+import MdToPdf from "./MdToPdf";
 import { useTheme } from "./ThemeContext";
 
-type Page = "pagerduty" | "ansi" | "sqs";
+type Page = "pagerduty" | "ansi" | "sqs" | "md";
 
 const NAV_ITEMS: { id: Page; label: string; icon: string }[] = [
   { id: "pagerduty", label: "PagerDuty Calendar", icon: "📅" },
   { id: "ansi", label: "ANSI Converter", icon: "⚡" },
   { id: "sqs", label: "SQS Visualizer", icon: "📊" },
+  { id: "md", label: "Markdown to PDF", icon: "📄" },
 ];
 
 export default function App() {
@@ -84,6 +86,7 @@ export default function App() {
         {page === "pagerduty" && <div style={{ flex: 1, overflow: "auto", minWidth: 0 }}><PagerDutyCalendar /></div>}
         {page === "ansi" && <AnsiConverter />}
         {page === "sqs" && <SqsVisualizer />}
+        {page === "md" && <MdToPdf />}
       </main>
     </div>
   );
