@@ -150,7 +150,7 @@ export default function MdToPdf() {
     const printCss = `
       @page {
         size: A4;
-        margin: 16mm 14mm 18mm;
+        margin: 20mm 24mm 18mm;
         @bottom-left {
           content: "${ts}";
           font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
@@ -169,9 +169,21 @@ export default function MdToPdf() {
         max-width: none;
         margin: 0;
         padding: 0;
+        line-height: 1.6;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
       }
+      .pagedjs_page_content .mdp-content p,
+      .pagedjs_page_content .mdp-content ul,
+      .pagedjs_page_content .mdp-content ol,
+      .pagedjs_page_content .mdp-content blockquote,
+      .pagedjs_page_content .mdp-content table,
+      .pagedjs_page_content .mdp-content pre {
+        margin-top: 0;
+        margin-bottom: 0.9em;
+      }
+      .pagedjs_page_content .mdp-content li { margin: 0.3em 0; }
+      .pagedjs_page_content .mdp-content li > p { margin: 0; }
     `;
 
     // Fresh off-screen target each run (off-screen, not display:none, so
@@ -181,8 +193,60 @@ export default function MdToPdf() {
     target.id = "mdp-paged";
     document.body.appendChild(target);
 
+    // Document-level print overrides. Paged.js clones nodes per page during
+    // layout, so styles passed to it (or set inline on the source) don't
+    // reliably survive. A normal @media print sheet in the document head, with
+    // !important, applies to the rendered .pagedjs_page_content at print time.
+    document.getElementById("mdp-print-style")?.remove();
+    const styleEl = document.createElement("style");
+    styleEl.id = "mdp-print-style";
+    styleEl.textContent = `
+      @media print {
+        /* Match the reference PDF: 14px body, 1.6 line spacing, GitHub heading
+           sizes. Deterministic via !important since Paged.js doesn't reliably
+           apply the .mdp-content stylesheet to its paged output. */
+        #mdp-paged .pagedjs_page_content {
+          font-size: 14px !important;
+          line-height: 1.6 !important;
+        }
+        #mdp-paged .pagedjs_page_content * {
+          line-height: 1.6 !important;
+        }
+        /* Clean sans-serif for text, monospace only for code. */
+        #mdp-paged .pagedjs_page_content,
+        #mdp-paged .pagedjs_page_content *:not(code):not(pre) {
+          font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+        }
+        #mdp-paged .pagedjs_page_content code,
+        #mdp-paged .pagedjs_page_content pre,
+        #mdp-paged .pagedjs_page_content pre * {
+          font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
+        }
+        /* Restore Mermaid's own font/leading inside diagrams — it measured text
+           in this font to size the boxes, so the global overrides above must not
+           reach the SVG or labels overflow their shapes. Placed last to win. */
+        #mdp-paged .pagedjs_page_content svg,
+        #mdp-paged .pagedjs_page_content svg * {
+          font-family: "trebuchet ms", verdana, arial, sans-serif !important;
+          line-height: normal !important;
+        }
+        #mdp-paged .pagedjs_page_content h1 { font-size: 26px !important; line-height: 1.25 !important; }
+        #mdp-paged .pagedjs_page_content h2 { font-size: 21px !important; line-height: 1.25 !important; }
+        #mdp-paged .pagedjs_page_content h3 { font-size: 17px !important; line-height: 1.25 !important; }
+        #mdp-paged .pagedjs_page_content h4 { font-size: 14px !important; line-height: 1.25 !important; }
+        #mdp-paged .pagedjs_page_content p,
+        #mdp-paged .pagedjs_page_content li,
+        #mdp-paged .pagedjs_page_content blockquote {
+          margin-top: 0 !important;
+          margin-bottom: 0.5em !important;
+        }
+      }
+    `;
+    document.head.appendChild(styleEl);
+
     const cleanup = () => {
       target.remove();
+      styleEl.remove();
       window.removeEventListener("afterprint", cleanup);
     };
 
