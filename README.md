@@ -7,6 +7,25 @@ A collection of browser-based utilities for developers.
 - **PagerDuty Calendar**: Visualize PagerDuty on-call schedules.
 - **ANSI Converter**: Convert ANSI-colored logs to HTML.
 - **SQS Visualizer**: Visualize SQS queue depth and CloudWatch metrics.
+- **Markdown to PDF**: Render Markdown (with Mermaid diagrams) and export it to PDF.
+
+## Markdown to PDF
+
+A fully client-side tool: write or load Markdown on the left, see a GitHub-styled
+preview on the right, then export to PDF. Fenced ` ```mermaid ``` ` blocks render
+as diagrams. The preview follows the app's light/dark theme.
+
+### Usage
+
+1. Open the **Markdown to PDF** tab.
+2. Paste/type Markdown, or use **Load file** to open a `.md` / `.markdown` file.
+3. Click **Export PDF** — your browser's print dialog opens; choose **Save as PDF**
+   as the destination.
+
+> Tip: in the print dialog, enable **Background graphics** if you want dark-theme
+> backgrounds to print. For a clean white document, export in light theme.
+
+No server is required — the feature works on the deployed static site.
 
 ## SQS Visualizer
 
