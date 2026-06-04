@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunkreact_typescript=globalThis.webpackChunkreact_typescript||[]).push([[1629],{1629(e,c,t){t.d(c,{createArchitectureServices:()=>r.S});var r=t(4173);t(1855)}}]);

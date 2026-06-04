@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunkreact_typescript=globalThis.webpackChunkreact_typescript||[]).push([[2106],{2106(e,a,c){c.d(a,{createWardleyServices:()=>r.J});var r=c(7132);c(1855)}}]);

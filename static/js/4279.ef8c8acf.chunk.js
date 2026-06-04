@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunkreact_typescript=globalThis.webpackChunkreact_typescript||[]).push([[4279],{4279(e,c,t){t.d(c,{createPacketServices:()=>a.$});var a=t(8541);t(1855)}}]);
