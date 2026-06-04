@@ -28,9 +28,9 @@
 ## 5. Verification
 
 - [x] 5.1 `npm run build` succeeds with no type errors and no missing-module error after removing `pagedjs`
-- [ ] 5.2 Export keeps Chrome's "Headers and footers" print option available (no `@page` margin boxes take it over)
-- [ ] 5.3 Load a file named `roadmap.md`, export, and confirm the print dialog's default filename is `roadmap`
-- [ ] 5.4 With no file loaded (seeded sample), export and confirm the title is blank (`" "`), not "ZUtils"
-- [ ] 5.5 With "Headers and footers" enabled, confirm the stamped header shows the file name / blank title and a blank URL, not "ZUtils" + the app URL
-- [ ] 5.6 After the dialog closes, confirm `document.title` and the address-bar URL are restored to their pre-export values
-- [ ] 5.7 Export a document with diagrams and confirm they print intact, scaled to fit the page, with document typography (light render)
+- [x] 5.2 Export keeps Chrome's "Headers and footers" print option available (no `@page` margin boxes take it over)
+- [x] 5.3 Load a file named `roadmap.md`, export, and confirm the print dialog's default filename is `roadmap`
+- [x] 5.4 With no file loaded (seeded sample), export and confirm the title is blank (`" "`), not "ZUtils"
+- [x] 5.5 With "Headers and footers" enabled, confirm the stamped header shows the file name / blank title and a blank URL, not "ZUtils" + the app URL
+- [x] 5.6 After the dialog closes, confirm `document.title` and the address-bar URL are restored to their pre-export values
+- [x] 5.7 Export a document with diagrams and confirm they print intact, scaled to fit the page, with document typography (light render)
