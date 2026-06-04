@@ -134,6 +134,81 @@ export default function MdToPdf() {
     reader.readAsText(file);
   }, []);
 
+  // Export to PDF. Chrome can't render per-page numbers from CSS alone, so we
+  // paginate the rendered preview with Paged.js (lazy-loaded) into an off-screen
+  // target whose @page margin boxes carry the custom footer, then print it.
+  const exportPdf = useCallback(async () => {
+    const el = previewRef.current;
+    if (!el) return;
+
+    // Local time (not UTC), formatted as YYYY-MM-DD HH:MM.
+    const d = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const ts =
+      `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ` +
+      `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    const printCss = `
+      @page {
+        size: A4;
+        margin: 16mm 14mm 18mm;
+        @bottom-left {
+          content: "${ts}";
+          font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+          font-size: 9px;
+          color: ${palette.muted};
+        }
+        @bottom-right {
+          content: "Page " counter(page) " of " counter(pages);
+          font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+          font-size: 9px;
+          color: ${palette.muted};
+        }
+      }
+      .pagedjs_page { background: ${palette.bg}; }
+      .pagedjs_page_content .mdp-content {
+        max-width: none;
+        margin: 0;
+        padding: 0;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    `;
+
+    // Fresh off-screen target each run (off-screen, not display:none, so
+    // Paged.js can still measure element heights for pagination).
+    document.getElementById("mdp-paged")?.remove();
+    const target = document.createElement("div");
+    target.id = "mdp-paged";
+    document.body.appendChild(target);
+
+    const cleanup = () => {
+      target.remove();
+      window.removeEventListener("afterprint", cleanup);
+    };
+
+    try {
+      const { Previewer } = await import("pagedjs");
+      const previewer = new Previewer();
+      const flow: any = await previewer.preview(
+        el.cloneNode(true),
+        [{ "mdp-print.css": printCss }],
+        target
+      );
+      // Pagination is done; disconnect each page's ResizeObserver so the reflow
+      // when the print dialog closes doesn't re-run layout against torn-down
+      // DOM (Paged.js bug: "Cannot read properties of null (reading 'nextSibling')").
+      try {
+        flow?.pages?.forEach((p: any) => p?.removeListeners?.());
+      } catch {
+        /* best-effort */
+      }
+      window.addEventListener("afterprint", cleanup);
+      window.print();
+    } catch {
+      cleanup();
+    }
+  }, [palette]);
+
   return (
     <div className="mdp-root">
       {/* HEADER */}
@@ -157,7 +232,7 @@ export default function MdToPdf() {
               }}
             />
           </label>
-          <button className="mdp-btn primary" onClick={() => window.print()}>
+          <button className="mdp-btn primary" onClick={exportPdf}>
             Export PDF ↧
           </button>
         </div>
@@ -190,7 +265,7 @@ export default function MdToPdf() {
           <div className="mdp-preview-scroll">
             <div
               ref={previewRef}
-              className="mdp-content mdp-print-area"
+              className="mdp-content"
               style={contentVars}
             />
           </div>
