@@ -51,6 +51,25 @@ const PALETTES = {
   },
 } as const;
 
+// "auto" follows the app theme (palette.mermaid); the rest are Mermaid's
+// built-in themes, selectable regardless of the app theme.
+type MermaidThemeChoice =
+  | "auto"
+  | "default"
+  | "dark"
+  | "forest"
+  | "neutral"
+  | "base";
+
+const MERMAID_THEME_OPTIONS: { value: MermaidThemeChoice; label: string }[] = [
+  { value: "auto", label: "Auto (app theme)" },
+  { value: "default", label: "Default" },
+  { value: "dark", label: "Dark" },
+  { value: "forest", label: "Forest" },
+  { value: "neutral", label: "Neutral" },
+  { value: "base", label: "Base" },
+];
+
 function escapeHTML(str: string): string {
   return str.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
@@ -73,9 +92,13 @@ marked.use({
 export default function MdToPdf() {
   const { theme } = useTheme();
   const [source, setSource] = useState(SAMPLE);
+  const [mermaidTheme, setMermaidTheme] = useState<MermaidThemeChoice>("auto");
   const previewRef = useRef<HTMLDivElement>(null);
 
   const palette = PALETTES[theme];
+  // "auto" tracks the app theme; an explicit choice overrides it.
+  const effectiveMermaidTheme =
+    mermaidTheme === "auto" ? palette.mermaid : mermaidTheme;
   const html = useMemo(() => marked.parse(source) as string, [source]);
 
   const contentVars = {
@@ -104,7 +127,7 @@ export default function MdToPdf() {
         if (cancelled) return;
         mermaid.initialize({
           startOnLoad: false,
-          theme: palette.mermaid,
+          theme: effectiveMermaidTheme,
           securityLevel: "loose",
         });
         // Render per-node so one invalid diagram doesn't break the others.
@@ -126,7 +149,7 @@ export default function MdToPdf() {
     return () => {
       cancelled = true;
     };
-  }, [html, palette.mermaid]);
+  }, [html, effectiveMermaidTheme]);
 
   const loadFile = useCallback((file: File) => {
     const reader = new FileReader();
@@ -283,6 +306,21 @@ export default function MdToPdf() {
           <p>Write Markdown (with Mermaid) → export a clean PDF</p>
         </div>
         <div className="mdp-header-actions">
+          <label className="mdp-select" title="Mermaid diagram theme">
+            <span>Diagram Theme</span>
+            <select
+              value={mermaidTheme}
+              onChange={e =>
+                setMermaidTheme(e.target.value as MermaidThemeChoice)
+              }
+            >
+              {MERMAID_THEME_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </label>
           <label className="mdp-btn" style={{ cursor: "pointer" }}>
             Load file
             <input
