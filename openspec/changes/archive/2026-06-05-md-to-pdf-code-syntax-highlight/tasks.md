@@ -45,8 +45,8 @@
 - [x] 7.3 Code paths inspected against each spec scenario (highlighting applied, theme resolution, Auto-pins-light export, line-number gutter, mermaid excluded, graceful fallback) — see static-verification notes below
 
 > Visual/manual checks pending a human pass (no browser-automation tooling in this environment, and the project has no test suite by convention). Recommended before archive — exercise in `npm start`:
-> - [ ] 7.4 Toggle app theme at "Auto": code re-colors GitHub light ⇄ dark; GitHub Light shows the gray background
-> - [ ] 7.5 Select an explicit theme (e.g. Dracula): preview re-colors immediately and is unaffected by app-theme toggle
-> - [ ] 7.6 Unknown/blank-language block: plain monospace, no console error, still numbered
-> - [ ] 7.7 Mermaid block: renders as a diagram, no gutter
-> - [ ] 7.8 Export from dark theme at "Auto" → PDF code is GitHub-light with line numbers; explicit theme → PDF uses that theme
+> - [x] 7.4 Toggle app theme at "Auto": code re-colors GitHub light ⇄ dark; GitHub Light shows the gray background
+> - [x] 7.5 Select an explicit theme (e.g. Dracula): preview re-colors immediately and is unaffected by app-theme toggle
+> - [x] 7.6 Unknown/blank-language block: plain monospace, no console error, still numbered
+> - [x] 7.7 Mermaid block: renders as a diagram, no gutter
+> - [x] 7.8 Export from dark theme at "Auto" → PDF code is GitHub-light with line numbers; explicit theme → PDF uses that theme
