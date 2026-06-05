@@ -33,10 +33,29 @@ flowchart LR
 ## Snippet
 
 \`\`\`ts
-export const greet = (name: string) => \`Hello, \${name}!\`;
+interface Person {
+  name: string;
+  role?: string;
+}
+
+// Build a friendly line for each person
+export function greet(people: Person[]): string {
+  return people.map(p => \`Hello, \${p.name}!\`).join(", ");
+}
 \`\`\`
 
-> Tip: switch the app theme — diagrams recolor to match.
+\`\`\`python
+def fib(n: int) -> list[int]:
+    """Return the first n Fibonacci numbers."""
+    seq = [0, 1]
+    while len(seq) < n:
+        seq.append(seq[-1] + seq[-2])
+    return seq[:n]
+
+print(fib(10))  # [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]
+\`\`\`
+
+> Tip: switch the app theme — diagrams recolor to match, and pick a **Code Theme** to restyle these snippets.
 `;
 
 // GitHub-style palettes, ported from the original CLI tool.
@@ -68,6 +87,33 @@ const MERMAID_THEME_OPTIONS: { value: MermaidThemeChoice; label: string }[] = [
   { value: "forest", label: "Forest" },
   { value: "neutral", label: "Neutral" },
   { value: "base", label: "Base" },
+];
+
+// "auto" follows the app theme (GitHub light/dark); the rest are fixed,
+// famous highlight.js themes selectable regardless of the app theme. The
+// non-auto values double as the `data-mdp-code-theme` attribute that the
+// scoped token CSS in MdToPdf.css keys off of.
+type CodeThemeChoice =
+  | "auto"
+  | "github"
+  | "github-dark"
+  | "monokai"
+  | "dracula"
+  | "nord"
+  | "solarized-light"
+  | "solarized-dark"
+  | "atom-one-dark";
+
+const CODE_THEME_OPTIONS: { value: CodeThemeChoice; label: string }[] = [
+  { value: "auto", label: "Auto (app theme)" },
+  { value: "github", label: "GitHub Light" },
+  { value: "github-dark", label: "GitHub Dark" },
+  { value: "monokai", label: "Monokai" },
+  { value: "dracula", label: "Dracula" },
+  { value: "nord", label: "Nord" },
+  { value: "solarized-light", label: "Solarized Light" },
+  { value: "solarized-dark", label: "Solarized Dark" },
+  { value: "atom-one-dark", label: "Atom One Dark" },
 ];
 
 function escapeHTML(str: string): string {
@@ -103,6 +149,27 @@ function fitDiagramsToPage(root: HTMLElement): void {
   });
 }
 
+// Prepend a non-selectable line-number gutter to a code block. The gutter is a
+// sibling of <code> inside <pre>; CSS lays them out as a flex row so the numbers
+// stay aligned with the code lines (code scrolls, numbers don't). Independent of
+// highlight.js, and cloned into the export, so numbers show even for unknown
+// languages and appear in the printed PDF.
+function addLineNumbers(code: HTMLElement): void {
+  const pre = code.parentElement;
+  if (!pre || pre.querySelector(".mdp-ln")) return;
+  const lineCount = (code.textContent ?? "")
+    .replace(/\n$/, "")
+    .split("\n").length;
+  const gutter = document.createElement("span");
+  gutter.className = "mdp-ln";
+  gutter.setAttribute("aria-hidden", "true");
+  gutter.textContent = Array.from({ length: lineCount }, (_, i) => i + 1).join(
+    "\n"
+  );
+  pre.classList.add("mdp-has-ln");
+  pre.insertBefore(gutter, code);
+}
+
 // Preserve ```mermaid``` fences as <pre class="mermaid">; everything else uses
 // the default renderer (return false). Mirrors the original tool's renderer.
 marked.use({
@@ -123,12 +190,21 @@ export default function MdToPdf() {
   const [source, setSource] = useState(SAMPLE);
   const [fileName, setFileName] = useState("");
   const [mermaidTheme, setMermaidTheme] = useState<MermaidThemeChoice>("auto");
+  const [codeTheme, setCodeTheme] = useState<CodeThemeChoice>("auto");
   const previewRef = useRef<HTMLDivElement>(null);
 
   const palette = PALETTES[theme];
   // "auto" tracks the app theme; an explicit choice overrides it.
   const effectiveMermaidTheme =
     mermaidTheme === "auto" ? palette.mermaid : mermaidTheme;
+  // "auto" maps to the GitHub light/dark theme for the current app theme; an
+  // explicit choice overrides it. Drives the `data-mdp-code-theme` attribute.
+  const effectiveCodeTheme: Exclude<CodeThemeChoice, "auto"> =
+    codeTheme === "auto"
+      ? theme === "dark"
+        ? "github-dark"
+        : "github"
+      : codeTheme;
   const html = useMemo(() => marked.parse(source) as string, [source]);
 
   const contentVars = {
@@ -148,6 +224,40 @@ export default function MdToPdf() {
     if (!el) return;
     el.innerHTML = html;
     let cancelled = false;
+
+    // Add line-number gutters first, independent of highlight.js, so numbers
+    // appear even if highlighting fails to load or the language is unknown.
+    // Re-created fresh each run since innerHTML is reset above.
+    el.querySelectorAll<HTMLElement>("pre:not(.mermaid) > code").forEach(
+      addLineNumbers
+    );
+
+    // Syntax-highlight non-Mermaid fenced code blocks. marked emits them as
+    // <pre><code class="language-xxx">…</code></pre>; highlight.js tokenizes
+    // them into <span class="hljs-…"> spans (colors come from the scoped theme
+    // CSS in MdToPdf.css). Lazily imported like Mermaid so it stays out of the
+    // main bundle. Token colors are theme-driven via data-mdp-code-theme, so
+    // this pass only needs to re-run when the source (html) changes.
+    (async () => {
+      const blocks = Array.from(
+        el.querySelectorAll<HTMLElement>("pre:not(.mermaid) > code")
+      );
+      if (blocks.length === 0) return;
+      try {
+        const hljs = (await import("highlight.js/lib/common")).default;
+        if (cancelled) return;
+        for (const block of blocks) {
+          if (cancelled) return;
+          try {
+            hljs.highlightElement(block);
+          } catch {
+            // Leave this block as plain monospace; others still highlight.
+          }
+        }
+      } catch {
+        // highlight.js failed to load; leave the raw code blocks in place.
+      }
+    })();
 
     (async () => {
       const nodes = Array.from(el.querySelectorAll<HTMLElement>("pre.mermaid"));
@@ -234,6 +344,12 @@ export default function MdToPdf() {
 
     const clone = el.cloneNode(true) as HTMLElement;
     fitDiagramsToPage(clone);
+    // Export is always light. Under "Auto" the preview may carry the dark code
+    // theme (data-mdp-code-theme cloned along), so pin the clone to the light
+    // GitHub theme; an explicitly-selected theme carries over unchanged.
+    if (codeTheme === "auto") {
+      clone.setAttribute("data-mdp-code-theme", "github");
+    }
     const fb = document.createElement("div");
     fb.id = "mdp-fallback";
     fb.appendChild(clone);
@@ -270,8 +386,9 @@ export default function MdToPdf() {
         }
         #mdp-fallback .mdp-content code,
         #mdp-fallback .mdp-content pre,
-        #mdp-fallback .mdp-content pre * {
-          font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
+        #mdp-fallback .mdp-content pre *,
+        #mdp-fallback .mdp-content .mdp-ln {
+          font-family: Menlo, Monaco, "Courier New", monospace !important;
         }
         /* Restore Mermaid's own font/leading inside diagrams — it measured text
            in this font to size the boxes, so the global overrides above must not
@@ -304,7 +421,7 @@ export default function MdToPdf() {
     };
     window.addEventListener("afterprint", cleanup);
     window.print();
-  }, [fileName]);
+  }, [fileName, codeTheme]);
 
   return (
     <div className="mdp-root">
@@ -325,6 +442,19 @@ export default function MdToPdf() {
               }
             >
               {MERMAID_THEME_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="mdp-select" title="Code syntax highlighting theme">
+            <span>Code Theme</span>
+            <select
+              value={codeTheme}
+              onChange={e => setCodeTheme(e.target.value as CodeThemeChoice)}
+            >
+              {CODE_THEME_OPTIONS.map(opt => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
                 </option>
@@ -378,6 +508,7 @@ export default function MdToPdf() {
             <div
               ref={previewRef}
               className="mdp-content"
+              data-mdp-code-theme={effectiveCodeTheme}
               style={contentVars}
             />
           </div>

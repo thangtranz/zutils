@@ -28,7 +28,12 @@ The tool MUST syntax-highlight non-Mermaid fenced code blocks in the rendered pr
 
 ### Requirement: Code Theme Selection
 
-The tool MUST provide a user-facing selector for the syntax-highlighting theme, with the same shape as the Mermaid theme selector. The selector MUST offer an "Auto" choice plus a curated set of named themes (GitHub Light, GitHub Dark, Monokai, Dracula, Nord, Solarized Light, Solarized Dark, Atom One Dark), and MUST default to "Auto". "Auto" MUST adapt to the app theme — GitHub-light token colors in light mode and GitHub-dark token colors in dark mode. An explicitly-selected theme MUST apply regardless of the app theme. The selected theme MUST drive both the preview and the export, the export inheriting the preview's rendered (highlighted) code. Under "Auto", the exported PDF MUST use the GitHub-light palette so printed code stays legible on the always-light export page.
+The tool MUST provide a user-facing selector for the syntax-highlighting theme, with the same shape as the Mermaid theme selector. The selector MUST offer an "Auto" choice plus a curated set of named themes (GitHub Light, GitHub Dark, Monokai, Dracula, Nord, Solarized Light, Solarized Dark, Atom One Dark), and MUST default to "Auto". "Auto" MUST adapt to the app theme — GitHub-light token colors in light mode and GitHub-dark token colors in dark mode. An explicitly-selected theme MUST apply regardless of the app theme. The selected theme MUST drive both the preview and the export, the export inheriting the preview's rendered (highlighted) code. Under "Auto", the exported PDF MUST use the GitHub-light palette so printed code stays legible on the always-light export page. The GitHub Light theme MUST use GitHub's gray code-block background (`#f6f8fa`), matching GitHub.com, rather than pure white.
+
+#### Scenario: GitHub Light uses a gray code background
+
+- **WHEN** the active code theme resolves to GitHub Light (selected explicitly, or via "Auto" in light mode)
+- **THEN** the code block background is GitHub's gray `#f6f8fa`, not pure white
 
 #### Scenario: Default Auto adapts to the app theme
 
@@ -59,3 +64,34 @@ The tool MUST provide a user-facing selector for the syntax-highlighting theme, 
 
 - **WHEN** the selector is "Auto", the app is in dark theme, and the document is exported
 - **THEN** the printed code uses the GitHub-light token palette (legible on the white print page), not the dark preview token colors
+
+---
+
+### Requirement: Code Line Numbers
+
+Each rendered non-Mermaid code block MUST display a line-number gutter in both the preview and the exported PDF, with one number per code line aligned to that line. The gutter MUST be added independently of syntax highlighting, so a block with an unknown or missing language still shows line numbers. The gutter digits MUST be excluded from text selection (so copying the block yields only the code, not the numbers), and MUST NOT be added to Mermaid diagram blocks. The gutter MUST use the active code theme's text color so it stays legible on that theme's background.
+
+#### Scenario: Line numbers in the preview
+
+- **WHEN** a fenced code block is rendered
+- **THEN** a gutter to the left of the code shows sequential line numbers, one per line, aligned to the code lines
+
+#### Scenario: Line numbers independent of highlighting
+
+- **WHEN** a code block has no language hint or an unrecognized one (so it is not token-highlighted)
+- **THEN** it still shows a line-number gutter
+
+#### Scenario: Line numbers in the exported PDF
+
+- **WHEN** a document containing code blocks is exported
+- **THEN** the printed code blocks include their line-number gutters
+
+#### Scenario: Numbers are not part of the copied text
+
+- **WHEN** the user selects and copies a code block in the preview
+- **THEN** the copied text contains only the code, not the line numbers
+
+#### Scenario: No gutter on Mermaid blocks
+
+- **WHEN** the source contains a ` ```mermaid ` block
+- **THEN** it renders as a diagram with no line-number gutter

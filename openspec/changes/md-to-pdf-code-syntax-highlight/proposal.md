@@ -10,6 +10,9 @@ Fenced code blocks in the Markdown to PDF tool render as flat, single-color mono
 - The selected theme drives both the **preview** and the **export** — the export inherits the preview's already-highlighted code (no separate export path), exactly like the Mermaid selector. With **Auto**, the exported PDF uses the GitHub-light palette (the export page is always light), so printed code stays legible on white paper.
 - Blocks with no language hint, or an unknown language, fall back gracefully to plain monospace rendering (no error, no broken markup).
 - Mermaid blocks are untouched — they still render as diagrams.
+- Add a **line-number gutter** to every code block (preview and PDF), added independently of highlighting so unknown-language blocks still get numbers; the digits are not selectable, so copying yields only the code.
+- Render code in the editor's default monospace font (**Menlo, Monaco, "Courier New", monospace** — VS Code's default `editor.fontFamily` on macOS) in both preview and PDF.
+- The GitHub Light theme uses GitHub's gray code-block background (`#f6f8fa`), matching GitHub.com.
 
 ## Capabilities
 
@@ -17,6 +20,7 @@ Fenced code blocks in the Markdown to PDF tool render as flat, single-color mono
 
 - `md-to-pdf`: **Code Syntax Highlighting** — fenced code blocks are tokenized and colored per language in both the preview and the export.
 - `md-to-pdf`: **Code Theme Selection** — a toolbar selector chooses the highlight theme (Auto + a set of famous themes), governing both preview and export.
+- `md-to-pdf`: **Code Line Numbers** — every code block shows a non-selectable line-number gutter in preview and export.
 
 ### Modified Capabilities
 
@@ -28,6 +32,8 @@ None. (The new behavior layers onto the existing render/export pipeline without 
   - Add a `codeTheme` state (`"auto"` plus the supported theme values, default `"auto"`), resolve the effective theme (`auto` → `github`/`github-dark` from the app theme), and expose a `<select>` in the toolbar alongside the Mermaid theme selector.
   - After the markdown HTML is injected, tokenize each non-Mermaid `pre > code` block with a lazily-imported highlighter (mirroring the existing lazy `import("mermaid")`); keep the Mermaid path unchanged.
   - Set the resolved theme as a `data-mdp-code-theme` attribute on the preview container so theme CSS can scope by selection; for export under **Auto**, the off-screen clone is pinned to the light variant.
-- Modified `src/MdToPdf.css` — add per-theme token color rules (adapted from highlight.js's official theme files) scoped by `.mdp-content[data-mdp-code-theme="…"]`, including each theme's code background/foreground.
+  - Add a small `addLineNumbers` helper that prepends a `.mdp-ln` gutter span to each non-Mermaid code block, run in the render effect before highlighting.
+  - Update the code-block font (preview CSS and the injected print stylesheet) to the VS Code default macOS monospace stack, and include `.mdp-ln` in the print stylesheet's monospace rule.
+- Modified `src/MdToPdf.css` — add per-theme token color rules (adapted from highlight.js's official theme files) scoped by `.mdp-content[data-mdp-code-theme="…"]`, including each theme's code background/foreground (GitHub Light using the gray `#f6f8fa`); add the line-number gutter layout/styling.
 - New dependency: a client-side syntax highlighter (`highlight.js`), code-split via dynamic import so the main bundle is unaffected — the same strategy already used for Mermaid. Themes are CSS only (no per-theme JS).
 - No backend, no API, no change to the source textarea or file-loading flow.

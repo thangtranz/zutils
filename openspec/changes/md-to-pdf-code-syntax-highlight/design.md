@@ -94,9 +94,19 @@ if (codeTheme === "auto") clone.setAttribute("data-mdp-code-theme", "github");
 
 The existing print rule forcing a monospace font on `code, pre, pre *` already covers the `hljs-` spans, and `print-color-adjust: exact` (already set on `.mdp-content` for print) ensures the token colors and theme background render rather than being dropped.
 
+### Line numbers via a flex gutter (not a highlight.js plugin)
+
+highlight.js has no built-in line numbering, and the community plugin can't robustly wrap lines when a single token (e.g. a block comment) spans newlines. Instead, an `addLineNumbers` helper prepends a non-selectable `<span class="mdp-ln">` gutter — its text is just `1\n2\n…\nN` (line count from `code.textContent`) — as a sibling of `<code>` inside `<pre>`. CSS lays the `<pre>` out as a flex row: the gutter is fixed-width and `user-select: none`, the code is `flex: 1; overflow-x: auto`, so horizontal scrolling moves the code while the numbers stay put and aligned (no line wrapping inside `<pre>` keeps the 1:1 row alignment reliable). This never touches the highlighted HTML, so it can't corrupt token spans, and it works for unknown-language blocks too.
+
+The pass runs in the render effect **before** highlighting and independently of it (its own `forEach`), so numbers appear even if highlight.js fails to load or the language is unknown. The gutter inherits the active theme's code color (set on `<pre>` per theme) at reduced opacity, so it's legible on every theme background. Because export clones the rendered preview, the gutters clone along and print in the PDF; `.mdp-ln` is added to the print stylesheet's monospace rule so the digits stay monospace and aligned (the sans-serif print rule would otherwise win on specificity). Known limitation: a code block tall enough to span multiple PDF pages may not paginate cleanly through the flex gutter — acceptable since these documents' snippets are short.
+
+### Code font matches the editor default; GitHub Light uses gray
+
+Code renders in `Menlo, Monaco, "Courier New", monospace` — VS Code's default macOS `editor.fontFamily` — in both the preview CSS and the injected print stylesheet, replacing the previous `ui-monospace, SFMono-Regular, …` stack (which resolved to SF Mono). The GitHub Light theme's code-block background is GitHub's gray `#f6f8fa` (matching GitHub.com and the existing `--mdp-code-bg`), not highlight.js's pure-white `github` background; since "Auto" in light mode and the Auto export both resolve to GitHub Light, the default code block is gray.
+
 ### Sample document
 
-The seeded `SAMPLE` already contains a ` ```ts ``` ` block, so highlighting and the default Auto theme are visible on first load with no extra content.
+The seeded `SAMPLE` carries a multi-line TypeScript block (interface, comment, template literal) and a Python block (docstring, keywords, numbers), so highlighting, line numbers, and the default Auto theme are all visible on first load.
 
 ## Risks / Trade-offs
 
