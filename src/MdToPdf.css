@@ -251,7 +251,8 @@
   padding: .2em .4em;
   border-radius: 6px;
   font-size: 85%;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* Match VS Code's default macOS editor font (editor.fontFamily). */
+  font-family: Menlo, Monaco, "Courier New", monospace;
 }
 
 .mdp-content pre code {
@@ -264,6 +265,34 @@
   padding: 14px;
   border-radius: 6px;
   overflow: auto;
+}
+
+/* Line-number gutter, added in JS after highlighting. Flex row keeps the
+   numbers fixed and aligned while the code scrolls horizontally. The gutter
+   inherits the active theme's code color (set on the <pre>) at low opacity. */
+.mdp-content pre.mdp-has-ln {
+  display: flex;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.mdp-content pre.mdp-has-ln > code {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.mdp-content .mdp-ln {
+  flex: 0 0 auto;
+  text-align: right;
+  white-space: pre;
+  user-select: none;
+  -webkit-user-select: none;
+  opacity: 0.45;
+  font-size: 85%;
+  font-family: Menlo, Monaco, "Courier New", monospace;
+  border-right: 1px solid currentColor;
+  padding-right: 12px;
 }
 
 .mdp-content table {
@@ -323,6 +352,237 @@
   border-radius: var(--radius);
   padding: 10px 12px;
 }
+
+/* ── SYNTAX HIGHLIGHTING (highlight.js token colors) ──
+   highlight.js only tokenizes code into <span class="hljs-…"> elements; the
+   colors live here. Each theme is scoped to the preview's data-mdp-code-theme
+   attribute (set from the Code Theme selector; "Auto" resolves to github /
+   github-dark). The block background is set on the <pre> and the base text /
+   unmapped-token color on code.hljs, so unmapped tokens degrade to neutral
+   theme foreground. Palettes adapted from highlight.js's official theme files.
+   These rules apply for print too: the export clone keeps its theme attribute,
+   so an explicit theme prints as-is while "Auto" is pinned to light in JS. */
+
+/* GitHub Light */
+.mdp-content[data-mdp-code-theme="github"] pre:not(.mermaid) { background: #f6f8fa; color: #24292e; }
+.mdp-content[data-mdp-code-theme="github"] code.hljs { color: #24292e; }
+.mdp-content[data-mdp-code-theme="github"] .hljs-comment,
+.mdp-content[data-mdp-code-theme="github"] .hljs-quote { color: #6a737d; }
+.mdp-content[data-mdp-code-theme="github"] .hljs-keyword,
+.mdp-content[data-mdp-code-theme="github"] .hljs-doctag,
+.mdp-content[data-mdp-code-theme="github"] .hljs-type,
+.mdp-content[data-mdp-code-theme="github"] .hljs-template-tag,
+.mdp-content[data-mdp-code-theme="github"] .hljs-template-variable { color: #d73a49; }
+.mdp-content[data-mdp-code-theme="github"] .hljs-title,
+.mdp-content[data-mdp-code-theme="github"] .hljs-section { color: #6f42c1; }
+.mdp-content[data-mdp-code-theme="github"] .hljs-attr,
+.mdp-content[data-mdp-code-theme="github"] .hljs-attribute,
+.mdp-content[data-mdp-code-theme="github"] .hljs-literal,
+.mdp-content[data-mdp-code-theme="github"] .hljs-number,
+.mdp-content[data-mdp-code-theme="github"] .hljs-meta,
+.mdp-content[data-mdp-code-theme="github"] .hljs-variable,
+.mdp-content[data-mdp-code-theme="github"] .hljs-selector-attr,
+.mdp-content[data-mdp-code-theme="github"] .hljs-selector-class,
+.mdp-content[data-mdp-code-theme="github"] .hljs-selector-id { color: #005cc5; }
+.mdp-content[data-mdp-code-theme="github"] .hljs-string,
+.mdp-content[data-mdp-code-theme="github"] .hljs-regexp,
+.mdp-content[data-mdp-code-theme="github"] .hljs-addition { color: #032f62; }
+.mdp-content[data-mdp-code-theme="github"] .hljs-built_in,
+.mdp-content[data-mdp-code-theme="github"] .hljs-symbol { color: #e36209; }
+.mdp-content[data-mdp-code-theme="github"] .hljs-name,
+.mdp-content[data-mdp-code-theme="github"] .hljs-tag,
+.mdp-content[data-mdp-code-theme="github"] .hljs-selector-tag { color: #22863a; }
+
+/* GitHub Dark */
+.mdp-content[data-mdp-code-theme="github-dark"] pre:not(.mermaid) { background: #0d1117; color: #c9d1d9; }
+.mdp-content[data-mdp-code-theme="github-dark"] code.hljs { color: #c9d1d9; }
+.mdp-content[data-mdp-code-theme="github-dark"] .hljs-comment,
+.mdp-content[data-mdp-code-theme="github-dark"] .hljs-quote { color: #8b949e; }
+.mdp-content[data-mdp-code-theme="github-dark"] .hljs-keyword,
+.mdp-content[data-mdp-code-theme="github-dark"] .hljs-doctag,
+.mdp-content[data-mdp-code-theme="github-dark"] .hljs-type,
+.mdp-content[data-mdp-code-theme="github-dark"] .hljs-template-tag,
+.mdp-content[data-mdp-code-theme="github-dark"] .hljs-template-variable { color: #ff7b72; }
+.mdp-content[data-mdp-code-theme="github-dark"] .hljs-title,
+.mdp-content[data-mdp-code-theme="github-dark"] .hljs-section { color: #d2a8ff; }
+.mdp-content[data-mdp-code-theme="github-dark"] .hljs-attr,
+.mdp-content[data-mdp-code-theme="github-dark"] .hljs-attribute,
+.mdp-content[data-mdp-code-theme="github-dark"] .hljs-literal,
+.mdp-content[data-mdp-code-theme="github-dark"] .hljs-number,
+.mdp-content[data-mdp-code-theme="github-dark"] .hljs-meta,
+.mdp-content[data-mdp-code-theme="github-dark"] .hljs-variable,
+.mdp-content[data-mdp-code-theme="github-dark"] .hljs-selector-attr,
+.mdp-content[data-mdp-code-theme="github-dark"] .hljs-selector-class,
+.mdp-content[data-mdp-code-theme="github-dark"] .hljs-selector-id { color: #79c0ff; }
+.mdp-content[data-mdp-code-theme="github-dark"] .hljs-string,
+.mdp-content[data-mdp-code-theme="github-dark"] .hljs-regexp,
+.mdp-content[data-mdp-code-theme="github-dark"] .hljs-addition { color: #a5d6ff; }
+.mdp-content[data-mdp-code-theme="github-dark"] .hljs-built_in,
+.mdp-content[data-mdp-code-theme="github-dark"] .hljs-symbol { color: #ffa657; }
+.mdp-content[data-mdp-code-theme="github-dark"] .hljs-name,
+.mdp-content[data-mdp-code-theme="github-dark"] .hljs-tag,
+.mdp-content[data-mdp-code-theme="github-dark"] .hljs-selector-tag { color: #7ee787; }
+
+/* Monokai */
+.mdp-content[data-mdp-code-theme="monokai"] pre:not(.mermaid) { background: #272822; color: #dddddd; }
+.mdp-content[data-mdp-code-theme="monokai"] code.hljs { color: #dddddd; }
+.mdp-content[data-mdp-code-theme="monokai"] .hljs-comment,
+.mdp-content[data-mdp-code-theme="monokai"] .hljs-quote,
+.mdp-content[data-mdp-code-theme="monokai"] .hljs-meta { color: #75715e; }
+.mdp-content[data-mdp-code-theme="monokai"] .hljs-keyword,
+.mdp-content[data-mdp-code-theme="monokai"] .hljs-tag,
+.mdp-content[data-mdp-code-theme="monokai"] .hljs-selector-tag,
+.mdp-content[data-mdp-code-theme="monokai"] .hljs-literal,
+.mdp-content[data-mdp-code-theme="monokai"] .hljs-number,
+.mdp-content[data-mdp-code-theme="monokai"] .hljs-name { color: #f92672; }
+.mdp-content[data-mdp-code-theme="monokai"] .hljs-attr,
+.mdp-content[data-mdp-code-theme="monokai"] .hljs-attribute,
+.mdp-content[data-mdp-code-theme="monokai"] .hljs-symbol,
+.mdp-content[data-mdp-code-theme="monokai"] .hljs-regexp { color: #bf79db; }
+.mdp-content[data-mdp-code-theme="monokai"] .hljs-string,
+.mdp-content[data-mdp-code-theme="monokai"] .hljs-title,
+.mdp-content[data-mdp-code-theme="monokai"] .hljs-section,
+.mdp-content[data-mdp-code-theme="monokai"] .hljs-type,
+.mdp-content[data-mdp-code-theme="monokai"] .hljs-built_in,
+.mdp-content[data-mdp-code-theme="monokai"] .hljs-addition,
+.mdp-content[data-mdp-code-theme="monokai"] .hljs-variable { color: #a6e22e; }
+
+/* Dracula */
+.mdp-content[data-mdp-code-theme="dracula"] pre:not(.mermaid) { background: #282936; color: #e9e9f4; }
+.mdp-content[data-mdp-code-theme="dracula"] code.hljs { color: #e9e9f4; }
+.mdp-content[data-mdp-code-theme="dracula"] .hljs-comment { color: #626483; }
+.mdp-content[data-mdp-code-theme="dracula"] .hljs-name,
+.mdp-content[data-mdp-code-theme="dracula"] .hljs-variable,
+.mdp-content[data-mdp-code-theme="dracula"] .hljs-template-variable,
+.mdp-content[data-mdp-code-theme="dracula"] .hljs-selector-tag,
+.mdp-content[data-mdp-code-theme="dracula"] .hljs-deletion { color: #ea51b2; }
+.mdp-content[data-mdp-code-theme="dracula"] .hljs-number,
+.mdp-content[data-mdp-code-theme="dracula"] .hljs-symbol,
+.mdp-content[data-mdp-code-theme="dracula"] .hljs-attr,
+.mdp-content[data-mdp-code-theme="dracula"] .hljs-literal,
+.mdp-content[data-mdp-code-theme="dracula"] .hljs-keyword,
+.mdp-content[data-mdp-code-theme="dracula"] .hljs-type { color: #b45bcf; }
+.mdp-content[data-mdp-code-theme="dracula"] .hljs-title,
+.mdp-content[data-mdp-code-theme="dracula"] .hljs-meta { color: #00f769; }
+.mdp-content[data-mdp-code-theme="dracula"] .hljs-string,
+.mdp-content[data-mdp-code-theme="dracula"] .hljs-addition { color: #ebff87; }
+.mdp-content[data-mdp-code-theme="dracula"] .hljs-built_in,
+.mdp-content[data-mdp-code-theme="dracula"] .hljs-doctag,
+.mdp-content[data-mdp-code-theme="dracula"] .hljs-quote,
+.mdp-content[data-mdp-code-theme="dracula"] .hljs-regexp { color: #a1efe4; }
+.mdp-content[data-mdp-code-theme="dracula"] .hljs-attribute,
+.mdp-content[data-mdp-code-theme="dracula"] .hljs-section,
+.mdp-content[data-mdp-code-theme="dracula"] .hljs-tag { color: #62d6e8; }
+
+/* Nord */
+.mdp-content[data-mdp-code-theme="nord"] pre:not(.mermaid) { background: #2e3440; color: #d8dee9; }
+.mdp-content[data-mdp-code-theme="nord"] code.hljs { color: #d8dee9; }
+.mdp-content[data-mdp-code-theme="nord"] .hljs-comment,
+.mdp-content[data-mdp-code-theme="nord"] .hljs-quote { color: #4c566a; }
+.mdp-content[data-mdp-code-theme="nord"] .hljs-keyword,
+.mdp-content[data-mdp-code-theme="nord"] .hljs-literal,
+.mdp-content[data-mdp-code-theme="nord"] .hljs-symbol,
+.mdp-content[data-mdp-code-theme="nord"] .hljs-name,
+.mdp-content[data-mdp-code-theme="nord"] .hljs-tag,
+.mdp-content[data-mdp-code-theme="nord"] .hljs-selector-tag { color: #81a1c1; }
+.mdp-content[data-mdp-code-theme="nord"] .hljs-built_in,
+.mdp-content[data-mdp-code-theme="nord"] .hljs-type,
+.mdp-content[data-mdp-code-theme="nord"] .hljs-title,
+.mdp-content[data-mdp-code-theme="nord"] .hljs-attr,
+.mdp-content[data-mdp-code-theme="nord"] .hljs-doctag { color: #8fbcbb; }
+.mdp-content[data-mdp-code-theme="nord"] .hljs-attribute,
+.mdp-content[data-mdp-code-theme="nord"] .hljs-section { color: #88c0d0; }
+.mdp-content[data-mdp-code-theme="nord"] .hljs-string,
+.mdp-content[data-mdp-code-theme="nord"] .hljs-addition { color: #a3be8c; }
+.mdp-content[data-mdp-code-theme="nord"] .hljs-number { color: #b48ead; }
+.mdp-content[data-mdp-code-theme="nord"] .hljs-regexp { color: #ebcb8b; }
+.mdp-content[data-mdp-code-theme="nord"] .hljs-meta,
+.mdp-content[data-mdp-code-theme="nord"] .hljs-template-tag { color: #5e81ac; }
+
+/* Solarized Light */
+.mdp-content[data-mdp-code-theme="solarized-light"] pre:not(.mermaid) { background: #fdf6e3; color: #586e75; }
+.mdp-content[data-mdp-code-theme="solarized-light"] code.hljs { color: #586e75; }
+.mdp-content[data-mdp-code-theme="solarized-light"] .hljs-comment { color: #839496; }
+.mdp-content[data-mdp-code-theme="solarized-light"] .hljs-name,
+.mdp-content[data-mdp-code-theme="solarized-light"] .hljs-variable,
+.mdp-content[data-mdp-code-theme="solarized-light"] .hljs-template-variable,
+.mdp-content[data-mdp-code-theme="solarized-light"] .hljs-selector-tag,
+.mdp-content[data-mdp-code-theme="solarized-light"] .hljs-deletion { color: #dc322f; }
+.mdp-content[data-mdp-code-theme="solarized-light"] .hljs-number,
+.mdp-content[data-mdp-code-theme="solarized-light"] .hljs-symbol,
+.mdp-content[data-mdp-code-theme="solarized-light"] .hljs-attr,
+.mdp-content[data-mdp-code-theme="solarized-light"] .hljs-literal { color: #cb4b16; }
+.mdp-content[data-mdp-code-theme="solarized-light"] .hljs-title { color: #b58900; }
+.mdp-content[data-mdp-code-theme="solarized-light"] .hljs-string,
+.mdp-content[data-mdp-code-theme="solarized-light"] .hljs-addition { color: #859900; }
+.mdp-content[data-mdp-code-theme="solarized-light"] .hljs-built_in,
+.mdp-content[data-mdp-code-theme="solarized-light"] .hljs-doctag,
+.mdp-content[data-mdp-code-theme="solarized-light"] .hljs-quote,
+.mdp-content[data-mdp-code-theme="solarized-light"] .hljs-regexp { color: #2aa198; }
+.mdp-content[data-mdp-code-theme="solarized-light"] .hljs-attribute,
+.mdp-content[data-mdp-code-theme="solarized-light"] .hljs-section { color: #268bd2; }
+.mdp-content[data-mdp-code-theme="solarized-light"] .hljs-keyword,
+.mdp-content[data-mdp-code-theme="solarized-light"] .hljs-type,
+.mdp-content[data-mdp-code-theme="solarized-light"] .hljs-template-tag { color: #6c71c4; }
+.mdp-content[data-mdp-code-theme="solarized-light"] .hljs-meta { color: #d33682; }
+.mdp-content[data-mdp-code-theme="solarized-light"] .hljs-tag { color: #657b83; }
+
+/* Solarized Dark */
+.mdp-content[data-mdp-code-theme="solarized-dark"] pre:not(.mermaid) { background: #002b36; color: #93a1a1; }
+.mdp-content[data-mdp-code-theme="solarized-dark"] code.hljs { color: #93a1a1; }
+.mdp-content[data-mdp-code-theme="solarized-dark"] .hljs-comment { color: #657b83; }
+.mdp-content[data-mdp-code-theme="solarized-dark"] .hljs-name,
+.mdp-content[data-mdp-code-theme="solarized-dark"] .hljs-variable,
+.mdp-content[data-mdp-code-theme="solarized-dark"] .hljs-template-variable,
+.mdp-content[data-mdp-code-theme="solarized-dark"] .hljs-selector-tag,
+.mdp-content[data-mdp-code-theme="solarized-dark"] .hljs-deletion { color: #dc322f; }
+.mdp-content[data-mdp-code-theme="solarized-dark"] .hljs-number,
+.mdp-content[data-mdp-code-theme="solarized-dark"] .hljs-symbol,
+.mdp-content[data-mdp-code-theme="solarized-dark"] .hljs-attr,
+.mdp-content[data-mdp-code-theme="solarized-dark"] .hljs-literal { color: #cb4b16; }
+.mdp-content[data-mdp-code-theme="solarized-dark"] .hljs-title { color: #b58900; }
+.mdp-content[data-mdp-code-theme="solarized-dark"] .hljs-string,
+.mdp-content[data-mdp-code-theme="solarized-dark"] .hljs-addition { color: #859900; }
+.mdp-content[data-mdp-code-theme="solarized-dark"] .hljs-built_in,
+.mdp-content[data-mdp-code-theme="solarized-dark"] .hljs-doctag,
+.mdp-content[data-mdp-code-theme="solarized-dark"] .hljs-quote,
+.mdp-content[data-mdp-code-theme="solarized-dark"] .hljs-regexp { color: #2aa198; }
+.mdp-content[data-mdp-code-theme="solarized-dark"] .hljs-attribute,
+.mdp-content[data-mdp-code-theme="solarized-dark"] .hljs-section { color: #268bd2; }
+.mdp-content[data-mdp-code-theme="solarized-dark"] .hljs-keyword,
+.mdp-content[data-mdp-code-theme="solarized-dark"] .hljs-type,
+.mdp-content[data-mdp-code-theme="solarized-dark"] .hljs-template-tag { color: #6c71c4; }
+.mdp-content[data-mdp-code-theme="solarized-dark"] .hljs-meta { color: #d33682; }
+.mdp-content[data-mdp-code-theme="solarized-dark"] .hljs-tag { color: #839496; }
+
+/* Atom One Dark */
+.mdp-content[data-mdp-code-theme="atom-one-dark"] pre:not(.mermaid) { background: #282c34; color: #abb2bf; }
+.mdp-content[data-mdp-code-theme="atom-one-dark"] code.hljs { color: #abb2bf; }
+.mdp-content[data-mdp-code-theme="atom-one-dark"] .hljs-comment,
+.mdp-content[data-mdp-code-theme="atom-one-dark"] .hljs-quote { color: #5c6370; font-style: italic; }
+.mdp-content[data-mdp-code-theme="atom-one-dark"] .hljs-keyword,
+.mdp-content[data-mdp-code-theme="atom-one-dark"] .hljs-doctag { color: #c678dd; }
+.mdp-content[data-mdp-code-theme="atom-one-dark"] .hljs-section,
+.mdp-content[data-mdp-code-theme="atom-one-dark"] .hljs-name,
+.mdp-content[data-mdp-code-theme="atom-one-dark"] .hljs-selector-tag,
+.mdp-content[data-mdp-code-theme="atom-one-dark"] .hljs-tag,
+.mdp-content[data-mdp-code-theme="atom-one-dark"] .hljs-deletion { color: #e06c75; }
+.mdp-content[data-mdp-code-theme="atom-one-dark"] .hljs-literal { color: #56b6c2; }
+.mdp-content[data-mdp-code-theme="atom-one-dark"] .hljs-string,
+.mdp-content[data-mdp-code-theme="atom-one-dark"] .hljs-regexp,
+.mdp-content[data-mdp-code-theme="atom-one-dark"] .hljs-addition,
+.mdp-content[data-mdp-code-theme="atom-one-dark"] .hljs-attribute { color: #98c379; }
+.mdp-content[data-mdp-code-theme="atom-one-dark"] .hljs-attr,
+.mdp-content[data-mdp-code-theme="atom-one-dark"] .hljs-variable,
+.mdp-content[data-mdp-code-theme="atom-one-dark"] .hljs-template-variable,
+.mdp-content[data-mdp-code-theme="atom-one-dark"] .hljs-type,
+.mdp-content[data-mdp-code-theme="atom-one-dark"] .hljs-selector-class,
+.mdp-content[data-mdp-code-theme="atom-one-dark"] .hljs-number { color: #d19a66; }
+.mdp-content[data-mdp-code-theme="atom-one-dark"] .hljs-symbol,
+.mdp-content[data-mdp-code-theme="atom-one-dark"] .hljs-bullet,
+.mdp-content[data-mdp-code-theme="atom-one-dark"] .hljs-meta,
+.mdp-content[data-mdp-code-theme="atom-one-dark"] .hljs-title { color: #61aeee; }
+.mdp-content[data-mdp-code-theme="atom-one-dark"] .hljs-built_in { color: #e6c07b; }
 
 /* ── PRINT ──
    Export goes through Paged.js: the rendered preview is paginated into an
