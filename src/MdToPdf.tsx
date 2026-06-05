@@ -1,6 +1,5 @@
 import { useState, useMemo, useRef, useEffect, useCallback, CSSProperties } from "react";
 import { marked } from "marked";
-import { useTheme } from "./ThemeContext";
 import "./MdToPdf.css";
 
 const SAMPLE = `# Project Roadmap
@@ -55,7 +54,7 @@ def fib(n: int) -> list[int]:
 print(fib(10))  # [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]
 \`\`\`
 
-> Tip: switch the app theme — diagrams recolor to match, and pick a **Code Theme** to restyle these snippets.
+> Tip: switch the **Page Theme** — the document and diagrams recolor to match, and pick a **Code Theme** to restyle these snippets.
 `;
 
 // GitHub-style palettes, ported from the original CLI tool.
@@ -70,8 +69,8 @@ const PALETTES = {
   },
 } as const;
 
-// "auto" follows the app theme (palette.mermaid); the rest are Mermaid's
-// built-in themes, selectable regardless of the app theme.
+// "auto" follows the page theme (palette.mermaid); the rest are Mermaid's
+// built-in themes, selectable regardless of the page theme.
 type MermaidThemeChoice =
   | "auto"
   | "default"
@@ -81,7 +80,7 @@ type MermaidThemeChoice =
   | "base";
 
 const MERMAID_THEME_OPTIONS: { value: MermaidThemeChoice; label: string }[] = [
-  { value: "auto", label: "Auto (app theme)" },
+  { value: "auto", label: "Auto (page theme)" },
   { value: "default", label: "Default" },
   { value: "dark", label: "Dark" },
   { value: "forest", label: "Forest" },
@@ -89,8 +88,8 @@ const MERMAID_THEME_OPTIONS: { value: MermaidThemeChoice; label: string }[] = [
   { value: "base", label: "Base" },
 ];
 
-// "auto" follows the app theme (GitHub light/dark); the rest are fixed,
-// famous highlight.js themes selectable regardless of the app theme. The
+// "auto" follows the page theme (GitHub light/dark); the rest are fixed,
+// famous highlight.js themes selectable regardless of the page theme. The
 // non-auto values double as the `data-mdp-code-theme` attribute that the
 // scoped token CSS in MdToPdf.css keys off of.
 type CodeThemeChoice =
@@ -105,7 +104,7 @@ type CodeThemeChoice =
   | "atom-one-dark";
 
 const CODE_THEME_OPTIONS: { value: CodeThemeChoice; label: string }[] = [
-  { value: "auto", label: "Auto (app theme)" },
+  { value: "auto", label: "Auto (page theme)" },
   { value: "github", label: "GitHub Light" },
   { value: "github-dark", label: "GitHub Dark" },
   { value: "monokai", label: "Monokai" },
@@ -114,6 +113,16 @@ const CODE_THEME_OPTIONS: { value: CodeThemeChoice; label: string }[] = [
   { value: "solarized-light", label: "Solarized Light" },
   { value: "solarized-dark", label: "Solarized Dark" },
   { value: "atom-one-dark", label: "Atom One Dark" },
+];
+
+// The exported PDF's page palette. Independent of the app theme (which themes
+// the on-screen preview); this governs only the export. Maps directly to the
+// `light`/`dark` keys of PALETTES above. Defaults to "light".
+type PageThemeChoice = "light" | "dark";
+
+const PAGE_THEME_OPTIONS: { value: PageThemeChoice; label: string }[] = [
+  { value: "light", label: "Light" },
+  { value: "dark", label: "Dark" },
 ];
 
 function escapeHTML(str: string): string {
@@ -186,22 +195,24 @@ marked.use({
 });
 
 export default function MdToPdf() {
-  const { theme } = useTheme();
   const [source, setSource] = useState(SAMPLE);
   const [fileName, setFileName] = useState("");
   const [mermaidTheme, setMermaidTheme] = useState<MermaidThemeChoice>("auto");
   const [codeTheme, setCodeTheme] = useState<CodeThemeChoice>("auto");
+  const [pageTheme, setPageTheme] = useState<PageThemeChoice>("light");
   const previewRef = useRef<HTMLDivElement>(null);
 
-  const palette = PALETTES[theme];
-  // "auto" tracks the app theme; an explicit choice overrides it.
+  // The Page Theme drives the rendered document — both the on-screen preview and
+  // the export — so the preview is a true WYSIWYG of the exported PDF.
+  const palette = PALETTES[pageTheme];
+  // "auto" tracks the page theme; an explicit choice overrides it.
   const effectiveMermaidTheme =
     mermaidTheme === "auto" ? palette.mermaid : mermaidTheme;
-  // "auto" maps to the GitHub light/dark theme for the current app theme; an
+  // "auto" maps to the GitHub light/dark theme for the current page theme; an
   // explicit choice overrides it. Drives the `data-mdp-code-theme` attribute.
   const effectiveCodeTheme: Exclude<CodeThemeChoice, "auto"> =
     codeTheme === "auto"
-      ? theme === "dark"
+      ? pageTheme === "dark"
         ? "github-dark"
         : "github"
       : codeTheme;
@@ -217,8 +228,9 @@ export default function MdToPdf() {
   } as CSSProperties;
 
   // Render markdown HTML, then render Mermaid diagrams into it. Re-runs when the
-  // source or theme changes; setting innerHTML fresh each time gives mermaid
-  // unprocessed nodes so theme toggles recolor diagrams.
+  // source or the (page-theme-derived) Mermaid theme changes; setting innerHTML
+  // fresh each time gives mermaid unprocessed nodes so theme changes recolor
+  // diagrams.
   useEffect(() => {
     const el = previewRef.current;
     if (!el) return;
@@ -342,24 +354,25 @@ export default function MdToPdf() {
     document.getElementById("mdp-fallback")?.remove();
     document.getElementById("mdp-fallback-style")?.remove();
 
+    // The clone inherits the preview's Page Theme palette (as inline CSS
+    // variables via style={contentVars}) and its already-rendered, theme-correct
+    // diagrams and highlighted code — the export is a straight WYSIWYG snapshot
+    // of the preview, so no per-export theme overrides are needed here.
     const clone = el.cloneNode(true) as HTMLElement;
+    // Lock each diagram to a fixed pixel size that fits one A4 content box so no
+    // diagram overflows the page width when the browser paginates it for print.
     fitDiagramsToPage(clone);
-    // Export is always light. Under "Auto" the preview may carry the dark code
-    // theme (data-mdp-code-theme cloned along), so pin the clone to the light
-    // GitHub theme; an explicitly-selected theme carries over unchanged.
-    if (codeTheme === "auto") {
-      clone.setAttribute("data-mdp-code-theme", "github");
-    }
     const fb = document.createElement("div");
     fb.id = "mdp-fallback";
     fb.appendChild(clone);
     document.body.appendChild(fb);
 
-    // Print-only sheet: hide the app UI so only the document prints, force a
-    // light, full-width, color-exact render so it's readable regardless of the
-    // app theme, and apply deterministic document typography (14px body, 1.6
-    // leading, GitHub heading scale, sans-serif prose / monospace code) so the
-    // PDF reads as a clean document rather than the on-screen preview styling.
+    // Print-only sheet: hide the app UI so only the document prints, force
+    // full-width + color-exact rendering so the Page Theme palette (carried on
+    // the clone as inline CSS variables) prints rather than being dropped, and
+    // apply deterministic document typography (14px body, 1.6 leading, GitHub
+    // heading scale, sans-serif prose / monospace code) rather than the
+    // on-screen preview styling.
     const styleEl = document.createElement("style");
     styleEl.id = "mdp-fallback-style";
     styleEl.textContent = `
@@ -369,8 +382,6 @@ export default function MdToPdf() {
         #root { display: none !important; }
         #mdp-fallback { display: block !important; }
         #mdp-fallback .mdp-content {
-          --mdp-bg: #ffffff; --mdp-fg: #1f2328; --mdp-muted: #656d76;
-          --mdp-border: #d0d7de; --mdp-code-bg: #f6f8fa; --mdp-link: #0969da;
           max-width: none !important; margin: 0 !important;
           /* @page already supplies the page margin — drop .mdp-content's own
              padding so the two don't stack into a double margin. */
@@ -421,7 +432,7 @@ export default function MdToPdf() {
     };
     window.addEventListener("afterprint", cleanup);
     window.print();
-  }, [fileName, codeTheme]);
+  }, [fileName]);
 
   return (
     <div className="mdp-root">
@@ -455,6 +466,19 @@ export default function MdToPdf() {
               onChange={e => setCodeTheme(e.target.value as CodeThemeChoice)}
             >
               {CODE_THEME_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="mdp-select" title="Exported PDF page theme">
+            <span>Page Theme</span>
+            <select
+              value={pageTheme}
+              onChange={e => setPageTheme(e.target.value as PageThemeChoice)}
+            >
+              {PAGE_THEME_OPTIONS.map(opt => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
                 </option>
