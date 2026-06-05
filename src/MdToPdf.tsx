@@ -158,6 +158,61 @@ function fitDiagramsToPage(root: HTMLElement): void {
   });
 }
 
+// A PDF page can't scroll, so content wider than the page would be clipped at
+// the page edge. Fit wide code blocks and tables to the page on the print clone
+// instead: let table cells wrap, then uniformly scale down any block still wider
+// than its available width. The work is done with inline styles on the clone (not
+// @media print CSS) so the on-screen preview keeps its horizontal scroll AND so
+// measurement matches the printed layout — print-only rules don't apply while we
+// read widths on screen. Callers must have the clone attached to the document and
+// laid out at the print content width before calling this.
+const MIN_FIT_SCALE = 0.5; // floor: past this, text is unreadable — accept clipping
+
+function fitWideBlocksToPage(root: HTMLElement): void {
+  // Impose the print content geometry so on-screen measurement matches print
+  // (the print stylesheet sets the same values with !important).
+  root.style.maxWidth = "none";
+  root.style.margin = "0";
+  root.style.padding = "0";
+  root.style.fontSize = "14px";
+  root.style.boxSizing = "border-box";
+
+  // Let long, unbreakable cell tokens (URLs, hashes) wrap so the common wide
+  // table fits without shrinking. No table-layout:fixed — that would cramp every
+  // table, not just the overflowing ones.
+  root.querySelectorAll<HTMLElement>("th, td").forEach(cell => {
+    cell.style.overflowWrap = "anywhere";
+    cell.style.wordBreak = "break-word";
+  });
+
+  const fit = (el: HTMLElement, avail: number, content: number) => {
+    if (avail > 0 && content > avail + 1) {
+      const scale = Math.max(MIN_FIT_SCALE, avail / content);
+      // `zoom` (not transform: scale) so the box reflows to the scaled size;
+      // setProperty avoids the gap in the `zoom` DOM typing.
+      el.style.setProperty("zoom", String(scale));
+    }
+  };
+
+  // Code blocks: the overflow lives on the inner <code> for line-numbered blocks
+  // (it has overflow-x:auto) and on the <pre> otherwise. Scale the whole <pre> so
+  // the line-number gutter and code scale together and stay aligned.
+  root.querySelectorAll<HTMLElement>("pre:not(.mermaid)").forEach(pre => {
+    const scroller = pre.classList.contains("mdp-has-ln")
+      ? pre.querySelector<HTMLElement>(":scope > code")
+      : pre;
+    if (!scroller) return;
+    fit(pre, scroller.clientWidth, scroller.scrollWidth);
+  });
+
+  // Tables: after cell wrapping, a still-too-wide table (many real columns) is
+  // scaled to fit, like code.
+  root.querySelectorAll<HTMLElement>("table").forEach(table => {
+    const avail = table.parentElement?.clientWidth ?? root.clientWidth;
+    fit(table, avail, table.scrollWidth);
+  });
+}
+
 // Prepend a non-selectable line-number gutter to a code block. The gutter is a
 // sibling of <code> inside <pre>; CSS lays them out as a flex row so the numbers
 // stay aligned with the code lines (code scrolls, numbers don't). Independent of
@@ -364,8 +419,27 @@ export default function MdToPdf() {
     fitDiagramsToPage(clone);
     const fb = document.createElement("div");
     fb.id = "mdp-fallback";
+    // Park the clone off-screen at the A4 content width so it is laid out (not
+    // display:none — fitWideBlocksToPage must read element widths) but not visible
+    // while we measure. Cleared below so the print stylesheet controls layout.
+    fb.style.position = "absolute";
+    fb.style.left = "-100000px";
+    fb.style.top = "0";
+    fb.style.width = `${PAGE_CONTENT_W}px`;
     fb.appendChild(clone);
     document.body.appendChild(fb);
+
+    // Fit code blocks and tables wider than the page so nothing is clipped (a PDF
+    // page can't scroll). Runs after fitDiagramsToPage and while the clone is laid
+    // out at the print width above.
+    fitWideBlocksToPage(clone);
+
+    // Done measuring — drop the off-screen parking so the print stylesheet
+    // positions the clone for print.
+    fb.style.position = "";
+    fb.style.left = "";
+    fb.style.top = "";
+    fb.style.width = "";
 
     // Print-only sheet: hide the app UI so only the document prints, force
     // full-width + color-exact rendering so the Page Theme palette (carried on
@@ -378,7 +452,7 @@ export default function MdToPdf() {
     styleEl.textContent = `
       @media screen { #mdp-fallback { display: none; } }
       @media print {
-        @page { size: A4; margin: 20mm 24mm 18mm; }
+        @page { margin: 20mm 24mm 18mm; }
         #root { display: none !important; }
         #mdp-fallback { display: block !important; }
         #mdp-fallback .mdp-content {
